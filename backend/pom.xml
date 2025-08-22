@@ -13,16 +13,18 @@
     <description>EMQX Topic管理增强服务</description>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring.boot.version>3.2.0</spring.boot.version>
-        <mybatis.plus.version>3.5.5</mybatis.plus.version>
-        <fastjson.version>2.0.43</fastjson.version>
-        <lombok.version>1.18.30</lombok.version>
+        <jwt.version>0.12.3</jwt.version>
         <mysql.version>8.2.0</mysql.version>
         <redis.version>3.2.0</redis.version>
-        <jwt.version>0.12.3</jwt.version>
+        <lombok.version>1.18.30</lombok.version>
+        <fastjson.version>2.0.43</fastjson.version>
+        <spring.boot.version>3.2.0</spring.boot.version>
+        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <mybatis.plus.version>3.5.5</mybatis.plus.version>
+        <sa-token-rdis.version>1.39.0</sa-token-rdis.version>
+        <sa-token-boot.version>1.37.0</sa-token-boot.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <dependencyManagement>
@@ -92,13 +94,13 @@
         <dependency>
             <groupId>cn.dev33</groupId>
             <artifactId>sa-token-spring-boot-starter</artifactId>
-            <version>1.37.0</version>
+            <version>${sa-token-boot.version}</version>
         </dependency>
         <!-- Sa-Token 整合 Redis （使用 jackson 序列化方式） -->
         <dependency>
             <groupId>cn.dev33</groupId>
-            <artifactId>sa-token-dao-redis-jackson</artifactId>
-            <version>1.37.0</version>
+            <artifactId>sa-token-redis-jackson</artifactId>
+            <version>${sa-token-rdis.version}</version>
         </dependency>
 
         <!-- HTTP Client -->
