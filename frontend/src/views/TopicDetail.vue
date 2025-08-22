@@ -59,8 +59,8 @@
           <div class="info-item">
             <label>所属分组</label>
             <div class="info-value">
-              <el-tag v-if="topicInfo.group" type="info" size="small">
-                {{ topicInfo.group }}
+              <el-tag v-if="topicInfo.groupName" type="info" size="small">
+                {{ topicInfo.groupName }}
               </el-tag>
               <span v-else class="no-group">未分组</span>
             </div>
@@ -257,23 +257,18 @@ import {
   Document,
   Check
 } from '@element-plus/icons-vue'
+import { TopicAPI, type TopicDTO, type TopicUpdateRequest } from '../api/topic'
+import { TagAPI, type TagDTO } from '../api/tag'
 
 interface TopicInfo {
-  id: string
+  id: number
   name: string
   path: string
-  status: 'active' | 'inactive'
-  group?: string
-  clientCount: number
-  messageCount: number
+  status: 'enabled' | 'disabled'
+  groupId?: number
+  groupName?: string
   createdAt: string
   updatedAt: string
-}
-
-interface TopicTag {
-  id: string
-  name: string
-  color: string
 }
 
 
@@ -285,7 +280,7 @@ const router = useRouter()
 const loading = ref(false)
 const saving = ref(false)
 const showAddTagDialog = ref(false)
-const selectedTagIds = ref<string[]>([])
+const selectedTagIds = ref<number[]>([])
 const isEditingDoc = ref(false)
 const savingDoc = ref(false)
 const payloadDoc = ref('')
@@ -293,22 +288,21 @@ const editingDocContent = ref('')
 
 // Topic信息
 const topicInfo = reactive<TopicInfo>({
-  id: '',
+  id: 0,
   name: '',
   path: '',
-  status: 'active',
-  group: '',
-  clientCount: 0,
-  messageCount: 0,
+  status: 'enabled',
+  groupId: undefined,
+  groupName: '',
   createdAt: '',
   updatedAt: ''
 })
 
 // Topic标签
-const topicTags = ref<TopicTag[]>([])
+const topicTags = ref<TagDTO[]>([])
 
 // 可用标签
-const availableTags = ref<TopicTag[]>([])
+const availableTags = ref<TagDTO[]>([])
 
 
 
@@ -331,11 +325,15 @@ const cancelEditDoc = () => {
 const saveDoc = async () => {
   try {
     savingDoc.value = true
-    // 这里应该调用API保存文档
-    // await updateTopicPayloadDoc(topicId.value, editingDocContent.value)
+    const topicId = Number(route.params.id)
+    const updateData: TopicUpdateRequest = {
+      name: topicInfo.name,
+      path: topicInfo.path,
+      groupId: topicInfo.groupId,
+      payloadDoc: editingDocContent.value
+    }
     
-    // 模拟API调用
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await TopicAPI.updateTopic(topicId, updateData)
     
     payloadDoc.value = editingDocContent.value
     isEditingDoc.value = false
@@ -381,103 +379,51 @@ const editTopic = () => {
 }
 
 const loadTopicInfo = async () => {
-  // TODO: 从API加载Topic信息
-  // 模拟数据
-  await new Promise(resolve => setTimeout(resolve, 500))
-  
-  const topicId = route.params.id as string
-  
-  // 根据ID获取对应的Topic信息（模拟数据）
-  const mockTopics = {
-    '1': {
-      id: '1',
-      name: 'device/+/telemetry',
-      path: 'device/+/telemetry',
-      status: 'active' as const,
-      group: '设备遥测',
-      clientCount: 25,
-      messageCount: 1250,
-      createdAt: '2024-01-10T08:30:00Z',
-      updatedAt: '2024-01-20T14:22:00Z'
-    },
-    '2': {
-      id: '2',
-      name: 'sensor/temperature/+',
-      path: 'sensor/temperature/+',
-      status: 'active' as const,
-      group: '传感器数据',
-      clientCount: 12,
-      messageCount: 890,
-      createdAt: '2024-01-12T10:15:00Z',
-      updatedAt: '2024-01-20T13:45:00Z'
-    },
-    '3': {
-      id: '3',
-      name: 'alert/system/error',
-      path: 'alert/system/error',
-      status: 'inactive' as const,
-      group: undefined,
-      clientCount: 5,
-      messageCount: 45,
-      createdAt: '2024-01-08T16:20:00Z',
-      updatedAt: '2024-01-19T11:30:00Z'
-    },
-    '4': {
-      id: '4',
-      name: 'device/gateway/status',
-      path: 'device/gateway/status',
-      status: 'active' as const,
-      group: '设备遥测',
-      clientCount: 8,
-      messageCount: 320,
-      createdAt: '2024-01-14T09:45:00Z',
-      updatedAt: '2024-01-20T12:15:00Z'
-    }
-  }
-  
-  const topicData = mockTopics[topicId as keyof typeof mockTopics]
-  if (topicData) {
-    Object.assign(topicInfo, topicData)
-  } else {
-    // 如果找不到对应的Topic，显示默认信息
+  try {
+    const topicId = Number(route.params.id)
+    const topic = await TopicAPI.getTopicById(topicId)
     Object.assign(topicInfo, {
-      id: topicId,
-      name: `Topic ${topicId}`,
-      path: `topic/${topicId}`,
-      status: 'active',
-      group: undefined,
-      clientCount: 0,
-      messageCount: 0,
-      createdAt: '2024-01-15T08:30:00Z',
-      updatedAt: '2024-01-20T14:22:00Z'
+      id: topic.id,
+      name: topic.name,
+      path: topic.path,
+      status: topic.status,
+      groupId: topic.groupId,
+      groupName: topic.groupName,
+      createdAt: topic.createdAt,
+      updatedAt: topic.updatedAt
     })
+    
+    // 加载payload文档
+    payloadDoc.value = topic.payloadDoc || ''
+  } catch (error) {
+    console.error('加载Topic信息失败:', error)
+    ElMessage.error('加载Topic信息失败')
   }
 }
 
 const loadTopicTags = async () => {
-  // TODO: 从API加载Topic标签
-  // 模拟数据
-  await new Promise(resolve => setTimeout(resolve, 300))
-  
-  topicTags.value = [
-    { id: '1', name: '重要', color: '#f56565' },
-    { id: '2', name: '传感器', color: '#4299e1' },
-    { id: '3', name: '实时数据', color: '#48bb78' }
-  ]
+  try {
+    const topicId = Number(route.params.id)
+    topicTags.value = await TopicAPI.getTopicTags(topicId)
+  } catch (error) {
+    console.error('加载Topic标签失败:', error)
+    ElMessage.error('加载Topic标签失败')
+    topicTags.value = []
+  }
 }
 
 const loadAvailableTags = async () => {
-  // TODO: 从API加载可用标签
-  // 模拟数据
-  await new Promise(resolve => setTimeout(resolve, 200))
-  
-  availableTags.value = [
-    { id: '4', name: '监控', color: '#ed8936' },
-    { id: '5', name: '告警', color: '#e53e3e' },
-    { id: '6', name: '测试', color: '#805ad5' },
-    { id: '7', name: '生产', color: '#38b2ac' },
-    { id: '8', name: '开发', color: '#d69e2e' }
-  ]
+  try {
+    const allTags = await TagAPI.getAllTags()
+    // 过滤掉已经添加的标签
+    availableTags.value = allTags.filter(tag => 
+      !topicTags.value.some(topicTag => topicTag.id === tag.id)
+    )
+  } catch (error) {
+    console.error('加载可用标签失败:', error)
+    ElMessage.error('加载可用标签失败')
+    availableTags.value = []
+  }
 }
 
 const loadTopicStats = async () => {
@@ -489,7 +435,7 @@ const loadTopicStats = async () => {
   payloadDoc.value = '# Payload说明\n\n这个Topic用于传输**传感器数据**，包含以下字段：\n\n- `temperature`: 温度值（摄氏度）\n- `humidity`: 湿度值（百分比）\n- `timestamp`: 时间戳\n\n示例数据：\n```json\n{\n  "temperature": 25.6,\n  "humidity": 60.2,\n  "timestamp": 1642234567890\n}\n```'
 }
 
-const toggleTagSelection = (tagId: string) => {
+const toggleTagSelection = (tagId: number) => {
   const index = selectedTagIds.value.indexOf(tagId)
   if (index > -1) {
     selectedTagIds.value.splice(index, 1)
@@ -503,26 +449,25 @@ const addSelectedTags = async () => {
   
   saving.value = true
   try {
-    // TODO: 调用API添加标签
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const topicId = Number(route.params.id)
+    await TopicAPI.addTopicTags(topicId, selectedTagIds.value)
     
-    // 模拟添加标签
-    const newTags = availableTags.value.filter(tag => 
-      selectedTagIds.value.includes(tag.id)
-    )
-    topicTags.value.push(...newTags)
+    // 重新加载标签数据
+    await loadTopicTags()
+    await loadAvailableTags()
     
-    ElMessage.success(`成功添加 ${newTags.length} 个标签`)
+    ElMessage.success(`成功添加 ${selectedTagIds.value.length} 个标签`)
     showAddTagDialog.value = false
     selectedTagIds.value = []
   } catch (error) {
+    console.error('添加标签失败:', error)
     ElMessage.error('添加标签失败')
   } finally {
     saving.value = false
   }
 }
 
-const removeTag = async (tagId: string) => {
+const removeTag = async (tagId: number) => {
   try {
     await ElMessageBox.confirm(
       '确定要移除这个标签吗？',
@@ -534,16 +479,19 @@ const removeTag = async (tagId: string) => {
       }
     )
     
-    // TODO: 调用API移除标签
-    await new Promise(resolve => setTimeout(resolve, 500))
+    const topicId = Number(route.params.id)
+    await TopicAPI.removeTopicTags(topicId, [tagId])
     
-    const index = topicTags.value.findIndex(tag => tag.id === tagId)
-    if (index > -1) {
-      topicTags.value.splice(index, 1)
-      ElMessage.success('标签移除成功')
+    // 重新加载标签数据
+    await loadTopicTags()
+    await loadAvailableTags()
+    
+    ElMessage.success('标签移除成功')
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('移除标签失败:', error)
+      ElMessage.error('移除标签失败')
     }
-  } catch {
-    // 用户取消操作
   }
 }
 

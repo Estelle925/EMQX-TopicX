@@ -373,30 +373,14 @@ import {
   Download,
   Document
 } from '@element-plus/icons-vue'
+import { TopicAPI, type TopicDTO, type TopicSearchRequest } from '@/api/topic'
+import { GroupAPI, type GroupDTO } from '@/api/group'
+import { TagAPI, type TagDTO } from '@/api/tag'
 
 // 类型定义
-interface Topic {
-  id: string
-  name: string
-  path: string
-  groupId?: string
-  groupName?: string
-  tags?: Tag[]
-  status: 'enabled' | 'disabled'
-  createdAt: string
-  updatedAt: string
-}
-
-interface Tag {
-  id: string
-  name: string
-  type: 'important' | 'realtime' | 'normal'
-}
-
-interface Group {
-  id: string
-  name: string
-}
+type Topic = TopicDTO
+type Tag = TagDTO
+type Group = GroupDTO
 
 interface Environment {
   label: string
@@ -423,8 +407,8 @@ const tableLoading = ref(false)
 // 搜索表单
 const searchForm = reactive({
   keyword: '',
-  groupId: '',
-  tags: [] as string[],
+  groupId: undefined as number | undefined,
+  tags: [] as number[],
   status: ''
 })
 
@@ -440,91 +424,43 @@ const tableData = ref<Topic[]>([])
 const selectedTopics = ref<Topic[]>([])
 
 // 分组和标签数据
-const groups = ref<Group[]>([
-  { id: '1', name: '设备遥测' },
-  { id: '2', name: '设备控制' },
-  { id: '3', name: '系统监控' },
-  { id: '4', name: '告警通知' }
-])
-
-const tags = ref<Tag[]>([
-  { id: '1', name: '重要', type: 'important' },
-  { id: '2', name: '实时', type: 'realtime' },
-  { id: '3', name: '普通', type: 'normal' }
-])
+const groups = ref<Group[]>([])
+const tags = ref<Tag[]>([])
 
 // 批量操作对话框
 const showBatchGroupDialog = ref(false)
 const showBatchTagDialog = ref(false)
 
 const batchGroupForm = reactive({
-  groupId: ''
+  groupId: undefined as number | undefined
 })
 
 const batchTagForm = reactive({
   action: 'add' as 'add' | 'remove',
-  tagIds: [] as string[]
+  tagIds: [] as number[]
 })
 
 // 计算属性
 const hasSelection = computed(() => selectedTopics.value.length > 0)
 
-// 模拟数据
-const mockData: Topic[] = [
-  {
-    id: '1',
-    name: 'device/+/telemetry',
-    path: 'device/sensor001/telemetry',
-    groupId: '1',
-    groupName: '设备遥测',
-    tags: [{ id: '1', name: '重要', type: 'important' }, { id: '2', name: '实时', type: 'realtime' }],
-    status: 'enabled',
-    createdAt: '2024-01-15 10:30:00',
-    updatedAt: '2024-01-20 14:25:00'
-  },
-  {
-    id: '2',
-    name: 'device/+/control',
-    path: 'device/actuator001/control',
-    groupId: '2',
-    groupName: '设备控制',
-    tags: [{ id: '1', name: '重要', type: 'important' }],
-    status: 'enabled',
-    createdAt: '2024-01-16 09:15:00',
-    updatedAt: '2024-01-18 16:40:00'
-  },
-  {
-    id: '3',
-    name: 'system/monitor/+',
-    path: 'system/monitor/cpu',
-    groupId: '3',
-    groupName: '系统监控',
-    tags: [{ id: '3', name: '普通', type: 'normal' }],
-    status: 'enabled',
-    createdAt: '2024-01-17 11:20:00',
-    updatedAt: '2024-01-19 13:55:00'
-  },
-  {
-    id: '4',
-    name: 'alert/+/notification',
-    path: 'alert/critical/notification',
-    groupId: '4',
-    groupName: '告警通知',
-    tags: [{ id: '1', name: '重要', type: 'important' }, { id: '2', name: '实时', type: 'realtime' }],
-    status: 'disabled',
-    createdAt: '2024-01-18 08:45:00',
-    updatedAt: '2024-01-21 10:30:00'
-  },
-  {
-    id: '5',
-    name: 'data/+/stream',
-    path: 'data/sensor/stream',
-    tags: [{ id: '2', name: '实时', type: 'realtime' }],
-    status: 'enabled',
-    createdAt: '2024-01-19 15:10:00',
-    updatedAt: '2024-01-22 09:20:00'
+// 数据加载方法
+const loadGroups = async () => {
+  try {
+    groups.value = await GroupAPI.getAllGroups()
+  } catch (error) {
+    console.error('加载分组失败:', error)
+    ElMessage.error('加载分组失败')
   }
-]
+}
+
+const loadTags = async () => {
+  try {
+    tags.value = await TagAPI.getAllTags()
+  } catch (error) {
+    console.error('加载标签失败:', error)
+    ElMessage.error('加载标签失败')
+  }
+}
 
 // 方法
 const handleEnvironmentChange = (value: string) => {
@@ -573,38 +509,25 @@ const resetSearch = () => {
 const loadTableData = async () => {
   tableLoading.value = true
   try {
-    await new Promise(resolve => setTimeout(resolve, 500))
-    
-    let filteredData = [...mockData]
-    
-    // 应用筛选条件
-    if (searchForm.keyword) {
-      filteredData = filteredData.filter(item => 
-        item.name.toLowerCase().includes(searchForm.keyword.toLowerCase()) ||
-        item.path.toLowerCase().includes(searchForm.keyword.toLowerCase())
-      )
+    const searchRequest = {
+      keyword: searchForm.keyword,
+      groupId: searchForm.groupId || undefined,
+      tagIds: searchForm.tags.length > 0 ? searchForm.tags : undefined,
+      status: searchForm.status || undefined,
+      page: pagination.currentPage - 1, // 后端从0开始
+      size: pagination.pageSize,
+      sortBy: 'createdAt',
+      sortDir: 'desc' as 'desc'
     }
     
-    if (searchForm.groupId) {
-      filteredData = filteredData.filter(item => item.groupId === searchForm.groupId)
-    }
-    
-    if (searchForm.status) {
-      filteredData = filteredData.filter(item => item.status === searchForm.status)
-    }
-    
-    if (searchForm.tags.length > 0) {
-      filteredData = filteredData.filter(item => 
-        item.tags?.some(tag => searchForm.tags.includes(tag.id))
-      )
-    }
-    
-    pagination.total = filteredData.length
-    
-    // 分页
-    const start = (pagination.currentPage - 1) * pagination.pageSize
-    const end = start + pagination.pageSize
-    tableData.value = filteredData.slice(start, end)
+    const result = await TopicAPI.searchTopics(searchRequest)
+    tableData.value = result.records
+    pagination.total = result.total
+  } catch (error) {
+    console.error('加载Topic数据失败:', error)
+    ElMessage.error('加载Topic数据失败')
+    tableData.value = []
+    pagination.total = 0
   } finally {
     tableLoading.value = false
   }
@@ -632,12 +555,14 @@ const handleBatchGroup = async () => {
   }
   
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const topicIds = selectedTopics.value.map(topic => topic.id)
+    await TopicAPI.batchAssignGroup(topicIds, batchGroupForm.groupId)
     ElMessage.success(`成功为 ${selectedTopics.value.length} 个 Topic 分配分组`)
     showBatchGroupDialog.value = false
-    batchGroupForm.groupId = ''
+    batchGroupForm.groupId = undefined
     loadTableData()
   } catch (error) {
+    console.error('批量分配分组失败:', error)
     ElMessage.error('批量分配分组失败')
   }
 }
@@ -649,13 +574,19 @@ const handleBatchTag = async () => {
   }
   
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const topicIds = selectedTopics.value.map(topic => topic.id)
+    if (batchTagForm.action === 'add') {
+      await TopicAPI.batchAddTags(topicIds, batchTagForm.tagIds)
+    } else {
+      await TopicAPI.batchRemoveTags(topicIds, batchTagForm.tagIds)
+    }
     const action = batchTagForm.action === 'add' ? '添加' : '移除'
     ElMessage.success(`成功为 ${selectedTopics.value.length} 个 Topic ${action}标签`)
     showBatchTagDialog.value = false
     batchTagForm.tagIds = []
     loadTableData()
   } catch (error) {
+    console.error('批量管理标签失败:', error)
     ElMessage.error('批量管理标签失败')
   }
 }
@@ -669,7 +600,7 @@ const exportData = async () => {
   }
 }
 
-const viewTopicDetail = (topic: Topic) => {
+const viewTopicDetail = (topic: TopicDTO) => {
   router.push(`/topics/${topic.id}`)
 }
 
@@ -688,6 +619,8 @@ const formatDateTime = (dateTime: string) => {
 
 // 生命周期
 onMounted(() => {
+  loadGroups()
+  loadTags()
   loadTableData()
 })
 </script>
