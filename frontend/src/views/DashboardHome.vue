@@ -131,6 +131,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { cardIconColors } from './colors.config.js'
 import {
   Setting,
   Document,
@@ -385,45 +386,42 @@ onMounted(() => {
 }
 
 .stat-icon {
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
   border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
-  color: white;
+  font-size: 36px;
+  color: #ffffff;
   position: relative;
   overflow: hidden;
-}
-
-.stat-icon::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: inherit;
-  filter: blur(20px);
-  opacity: 0.3;
-  z-index: -1;
+  transition: all 0.3s ease;
 }
 
 .stat-icon.system {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: v-bind('cardIconColors.system.background');
+  box-shadow: v-bind('cardIconColors.system.shadow');
 }
 
 .stat-icon.topic {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: v-bind('cardIconColors.topic.background');
+  box-shadow: v-bind('cardIconColors.topic.shadow');
 }
 
 .stat-icon.group {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: v-bind('cardIconColors.group.background');
+  box-shadow: v-bind('cardIconColors.group.shadow');
 }
 
 .stat-icon.tag {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  background: v-bind('cardIconColors.tag.background');
+  box-shadow: v-bind('cardIconColors.tag.shadow');
+}
+
+.stat-icon:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
 }
 
 .stat-trend {
@@ -560,15 +558,15 @@ onMounted(() => {
 }
 
 .action-icon.primary {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-}
-
-.action-icon.success {
   background: linear-gradient(135deg, #10b981, #059669);
 }
 
+.action-icon.success {
+  background: linear-gradient(135deg, #34d399, #10b981);
+}
+
 .action-icon.info {
-  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  background: linear-gradient(135deg, #6ee7b7, #34d399);
 }
 
 .action-content {
@@ -634,11 +632,11 @@ onMounted(() => {
 }
 
 .status-avatar.online {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, #22c55e, #16a34a);
 }
 
 .status-avatar.offline {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+  background: linear-gradient(135deg, #f87171, #ef4444);
 }
 
 .status-avatar::after {
@@ -653,11 +651,11 @@ onMounted(() => {
 }
 
 .status-avatar.online::after {
-  background: #10b981;
+  background: #22c55e;
 }
 
 .status-avatar.offline::after {
-  background: #ef4444;
+  background: #f87171;
 }
 
 .status-info {
@@ -704,11 +702,11 @@ onMounted(() => {
 }
 
 .status-dot.online {
-  background: #10b981;
+  background: #22c55e;
 }
 
 .status-dot.offline {
-  background: #ef4444;
+  background: #f87171;
 }
 
 .status-text {
@@ -717,11 +715,11 @@ onMounted(() => {
 }
 
 .status-text.online {
-  color: #10b981;
+  color: #22c55e;
 }
 
 .status-text.offline {
-  color: #ef4444;
+  color: #f87171;
 }
 
 .empty-status {

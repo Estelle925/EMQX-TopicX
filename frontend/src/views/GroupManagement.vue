@@ -279,6 +279,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { cardIconColors } from './colors.config.js'
 import { 
   Plus, 
   Refresh, 
@@ -705,41 +706,43 @@ onMounted(() => {
 }
 
 .stat-icon {
-  width: 40px;
-  height: 40px;
+  width: 56px;
+  height: 56px;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #ffffff;
   margin: var(--spacing-xs);
-  font-size: 18px;
+  font-size: 28px;
   position: relative;
+  transition: all 0.3s ease;
 }
 
-.stat-icon::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  opacity: 0.1;
-  z-index: 0;
+.stat-icon.groups {
+  background: v-bind('cardIconColors.group.background');
+  box-shadow: v-bind('cardIconColors.group.shadow');
 }
 
-.stat-icon .el-icon {
-  position: relative;
-  z-index: 1;
+.stat-icon.tags {
+  background: v-bind('cardIconColors.tag.background');
+  box-shadow: v-bind('cardIconColors.tag.shadow');
 }
 
-.stat-icon.groups { background: var(--primary-gradient); }
-.stat-icon.tags { background: var(--warning-gradient); }
-.stat-icon.topics { background: var(--success-gradient); }
-.stat-icon.average { background: var(--info-gradient); }
+.stat-icon.topics {
+  background: v-bind('cardIconColors.topic.background');
+  box-shadow: v-bind('cardIconColors.topic.shadow');
+}
 
-.stat-icon.groups::after { background: var(--primary-gradient); }
-.stat-icon.tags::after { background: var(--warning-gradient); }
-.stat-icon.topics::after { background: var(--success-gradient); }
-.stat-icon.average::after { background: var(--info-gradient); }
+.stat-icon.average {
+  background: v-bind('cardIconColors.average.background');
+  box-shadow: v-bind('cardIconColors.average.shadow');
+}
+
+.stat-icon:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+}
 
 .stat-value {
   font-size: 32px;
@@ -991,22 +994,22 @@ onMounted(() => {
 }
 
 :deep(.el-button--primary) {
-  background: linear-gradient(135deg, #409eff, #66b1ff);
+  background: linear-gradient(135deg, #10b981, #059669);
   border: none;
 }
 
 :deep(.el-button--primary:hover) {
-  background: linear-gradient(135deg, #337ecc, #5a9cff);
+  background: linear-gradient(135deg, #059669, #047857);
   transform: none !important;
 }
 
 :deep(.el-button--danger) {
-  background: linear-gradient(135deg, #f56c6c, #f78989);
+  background: linear-gradient(135deg, #f87171, #ef4444);
   border: none;
 }
 
 :deep(.el-button--danger:hover) {
-  background: linear-gradient(135deg, #e85656, #f56c6c);
+  background: linear-gradient(135deg, #ef4444, #dc2626);
   transform: none !important;
 }
 

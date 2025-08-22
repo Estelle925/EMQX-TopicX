@@ -617,8 +617,8 @@ onMounted(async () => {
 }
 
 .back-button:hover {
-  color: #3b82f6;
-  background: #f0f9ff;
+  color: #10b981;
+  background: #ecfdf5;
 }
 
 .header-info h2 {
@@ -697,7 +697,7 @@ onMounted(async () => {
 }
 
 .header-icon {
-  color: #3b82f6;
+  color: #10b981;
   font-size: 18px;
 }
 
@@ -882,13 +882,13 @@ onMounted(async () => {
 }
 
 .available-tag:hover {
-  border-color: #3b82f6;
-  background: #f0f9ff;
+  border-color: #10b981;
+  background: #ecfdf5;
 }
 
 .available-tag.selected {
-  border-color: #3b82f6;
-  background: #dbeafe;
+  border-color: #10b981;
+  background: #d1fae5;
 }
 
 .dialog-footer {

@@ -195,6 +195,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { cardIconColors } from './colors.config.js'
 import { 
   Plus, 
   Refresh, 
@@ -428,11 +429,11 @@ onMounted(() => {
 /* CSS变量定义 */
 /* 页面容器样式 */
 .system-management {
-  --primary-gradient: linear-gradient(135deg, #667eea, #764ba2);
-  --success-gradient: linear-gradient(135deg, #67c23a, #85ce61);
-  --danger-gradient: linear-gradient(135deg, #f56c6c, #f78989);
-  --warning-gradient: linear-gradient(135deg, #e6a23c, #ebb563);
-  --info-gradient: linear-gradient(135deg, #409eff, #66b1ff);
+  --primary-gradient: linear-gradient(135deg, #10b981, #059669);
+  --success-gradient: linear-gradient(135deg, #22c55e, #16a34a);
+  --danger-gradient: linear-gradient(135deg, #f87171, #ef4444);
+  --warning-gradient: linear-gradient(135deg, #34d399, #10b981);
+  --info-gradient: linear-gradient(135deg, #6ee7b7, #34d399);
   --text-primary: #1e293b;
   --text-secondary: #475569;
   --text-muted: #64748b;
@@ -537,47 +538,42 @@ onMounted(() => {
 }
 
 .stat-icon {
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 64px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-right: var(--spacing-lg);
-  font-size: 24px;
-  color: white;
+  font-size: 32px;
+  color: #ffffff;
   position: relative;
-}
-
-.stat-icon::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-md);
-  background: inherit;
-  opacity: 0.1;
-  z-index: 0;
-}
-
-.stat-icon .el-icon {
-  position: relative;
-  z-index: 1;
+  transition: all 0.3s ease;
 }
 
 .stat-icon.online {
-  background: var(--success-gradient);
+  background: v-bind('cardIconColors.online.background');
+  box-shadow: v-bind('cardIconColors.online.shadow');
 }
 
 .stat-icon.offline {
-  background: var(--danger-gradient);
+  background: v-bind('cardIconColors.offline.background');
+  box-shadow: v-bind('cardIconColors.offline.shadow');
 }
 
 .stat-icon.total {
-  background: var(--info-gradient);
+  background: v-bind('cardIconColors.total.background');
+  box-shadow: v-bind('cardIconColors.total.shadow');
 }
 
 .stat-icon.topics {
-  background: var(--warning-gradient);
+  background: v-bind('cardIconColors.topic.background');
+  box-shadow: v-bind('cardIconColors.topic.shadow');
+}
+
+.stat-icon:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
 }
 
 .stat-info {
@@ -680,23 +676,23 @@ onMounted(() => {
 }
 
 .status-dot.online {
-  background: linear-gradient(135deg, #67c23a, #85ce61);
+  background: linear-gradient(135deg, #22c55e, #16a34a);
   box-shadow: none;
 }
 
 .status-dot.offline {
-  background: linear-gradient(135deg, #f56c6c, #f78989);
+  background: linear-gradient(135deg, #f87171, #ef4444);
   box-shadow: none;
 }
 
 .status-text.online {
-  color: #67c23a;
+  color: #22c55e;
   font-weight: 600;
   font-size: 14px;
 }
 
 .status-text.offline {
-  color: #f56c6c;
+  color: #f87171;
   font-weight: 600;
   font-size: 14px;
 }
@@ -756,22 +752,22 @@ onMounted(() => {
 }
 
 :deep(.el-button--primary) {
-  background: linear-gradient(135deg, #409eff, #66b1ff);
+  background: linear-gradient(135deg, #10b981, #059669);
   border: none;
 }
 
 :deep(.el-button--primary:hover) {
-  background: linear-gradient(135deg, #337ecc, #5a9cff);
+  background: linear-gradient(135deg, #059669, #047857);
   transform: none !important;
 }
 
 :deep(.el-button--danger) {
-  background: linear-gradient(135deg, #f56c6c, #f78989);
+  background: linear-gradient(135deg, #f87171, #ef4444);
   border: none;
 }
 
 :deep(.el-button--danger:hover) {
-  background: linear-gradient(135deg, #e85656, #f56c6c);
+  background: linear-gradient(135deg, #ef4444, #dc2626);
   transform: none !important;
 }
 
