@@ -291,20 +291,12 @@ import {
   Edit,
   Delete
 } from '@element-plus/icons-vue'
+import { GroupAPI, type GroupDTO, type GroupCreateRequest, type GroupUpdateRequest } from '../api/group'
+import { TagAPI, type TagDTO, type TagCreateRequest, type TagUpdateRequest } from '../api/tag'
 
-interface Group {
-  id?: number
-  name: string
-  description?: string
-  topicCount: number
-  createdAt: string
-}
-
-interface Tag {
-  id?: number
-  name: string
-  color: string
-}
+// 使用从API导入的类型
+type Group = GroupDTO
+type Tag = TagDTO
 
 const loading = ref(false)
 const saving = ref(false)
@@ -379,46 +371,9 @@ const tagRules: FormRules = {
 const loadGroups = async () => {
   loading.value = true
   try {
-    // TODO: 调用后端API获取分组列表
-    await new Promise(resolve => setTimeout(resolve, 500)) // 模拟网络延迟
-    groups.value = [
-      {
-        id: 1,
-        name: '设备遥测',
-        description: '设备遥测数据相关的Topic',
-        topicCount: 15,
-        createdAt: '2024-01-15'
-      },
-      {
-        id: 2,
-        name: '传感器数据',
-        description: '各类传感器数据Topic',
-        topicCount: 8,
-        createdAt: '2024-01-14'
-      },
-      {
-        id: 3,
-        name: '系统告警',
-        description: '系统告警相关Topic',
-        topicCount: 3,
-        createdAt: '2024-01-13'
-      },
-      {
-        id: 4,
-        name: '环境监控',
-        description: '环境温湿度等监控数据',
-        topicCount: 12,
-        createdAt: '2024-01-12'
-      },
-      {
-        id: 5,
-        name: '设备状态',
-        description: '设备在线状态和健康检查',
-        topicCount: 6,
-        createdAt: '2024-01-11'
-      }
-    ]
+    groups.value = await GroupAPI.getAllGroups()
   } catch (error) {
+    console.error('加载分组列表失败:', error)
     ElMessage.error('加载分组列表失败')
   } finally {
     loading.value = false
@@ -427,19 +382,9 @@ const loadGroups = async () => {
 
 const loadTags = async () => {
   try {
-    // TODO: 调用后端API获取标签列表
-    await new Promise(resolve => setTimeout(resolve, 300)) // 模拟网络延迟
-    tags.value = [
-      { id: 1, name: '重要', color: '#F56C6C' },
-      { id: 2, name: '实时', color: '#67C23A' },
-      { id: 3, name: '温度', color: '#409EFF' },
-      { id: 4, name: '告警', color: '#E6A23C' },
-      { id: 5, name: '历史', color: '#909399' },
-      { id: 6, name: '高频', color: '#C71585' },
-      { id: 7, name: '低频', color: '#32CD32' },
-      { id: 8, name: '测试', color: '#8A2BE2' }
-    ]
+    tags.value = await TagAPI.getAllTags()
   } catch (error) {
+    console.error('加载标签列表失败:', error)
     ElMessage.error('加载标签列表失败')
   }
 }
@@ -465,11 +410,16 @@ const deleteGroup = async (group: Group) => {
       }
     )
     
-    // TODO: 调用后端API删除分组
-    ElMessage.success('删除成功')
-    loadGroups()
-  } catch (error) {
-    // 用户取消操作
+    if (group.id) {
+      await GroupAPI.deleteGroup(group.id)
+      ElMessage.success('删除成功')
+      loadGroups()
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('删除分组失败:', error)
+      ElMessage.error('删除失败')
+    }
   }
 }
 
@@ -494,11 +444,16 @@ const deleteTag = async (tag: Tag) => {
       }
     )
     
-    // TODO: 调用后端API删除标签
-    ElMessage.success('删除成功')
-    loadTags()
-  } catch (error) {
-    // 用户取消操作
+    if (tag.id) {
+      await TagAPI.deleteTag(tag.id)
+      ElMessage.success('删除成功')
+      loadTags()
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('删除标签失败:', error)
+      ElMessage.error('删除失败')
+    }
   }
 }
 
@@ -509,10 +464,21 @@ const saveGroup = async () => {
     await groupFormRef.value.validate()
     saving.value = true
     
-    // TODO: 调用后端API保存分组
-    if (editingGroup.value) {
+    if (editingGroup.value && editingGroup.value.id) {
+      // 更新分组
+      const updateRequest: GroupUpdateRequest = {
+        name: groupForm.name,
+        description: groupForm.description
+      }
+      await GroupAPI.updateGroup(editingGroup.value.id, updateRequest)
       ElMessage.success('更新成功')
     } else {
+      // 创建分组
+      const createRequest: GroupCreateRequest = {
+        name: groupForm.name,
+        description: groupForm.description
+      }
+      await GroupAPI.createGroup(createRequest)
       ElMessage.success('创建成功')
     }
     
@@ -520,6 +486,7 @@ const saveGroup = async () => {
     resetGroupForm()
     loadGroups()
   } catch (error) {
+    console.error('保存分组失败:', error)
     ElMessage.error('保存失败')
   } finally {
     saving.value = false
@@ -533,10 +500,21 @@ const saveTag = async () => {
     await tagFormRef.value.validate()
     saving.value = true
     
-    // TODO: 调用后端API保存标签
-    if (editingTag.value) {
+    if (editingTag.value && editingTag.value.id) {
+      // 更新标签
+      const updateRequest: TagUpdateRequest = {
+        name: tagForm.name,
+        color: tagForm.color
+      }
+      await TagAPI.updateTag(editingTag.value.id, updateRequest)
       ElMessage.success('更新成功')
     } else {
+      // 创建标签
+      const createRequest: TagCreateRequest = {
+        name: tagForm.name,
+        color: tagForm.color
+      }
+      await TagAPI.createTag(createRequest)
       ElMessage.success('添加成功')
     }
     
@@ -544,6 +522,7 @@ const saveTag = async () => {
     resetTagForm()
     loadTags()
   } catch (error) {
+    console.error('保存标签失败:', error)
     ElMessage.error('保存失败')
   } finally {
     saving.value = false
@@ -589,12 +568,9 @@ const getTopicCountType = (count: number) => {
 }
 
 const getTagUsageCount = (tagId: number | undefined) => {
-  // TODO: 实际应该从后端API获取标签使用次数
-  // 这里返回模拟数据
-  const usageCounts: Record<number, number> = {
-    1: 25, 2: 18, 3: 12, 4: 8, 5: 5, 6: 15, 7: 3, 8: 2
-  }
-  return usageCounts[tagId || 0] || 0
+  // 从标签对象中获取使用次数，如果没有则返回0
+  const tag = tags.value.find(t => t.id === tagId)
+  return tag?.usageCount || 0
 }
 
 onMounted(() => {
