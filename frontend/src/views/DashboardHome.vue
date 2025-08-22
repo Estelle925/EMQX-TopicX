@@ -100,8 +100,7 @@
                 <div class="system-name">{{ system.name }}</div>
                 <div class="system-url">{{ system.url }}</div>
                 <div class="system-metrics">
-                  <span class="metric">连接数: {{ system.connections || 0 }}</span>
-                  <span class="metric">消息数: {{ system.messages || 0 }}</span>
+                  <span class="metric">主题数量: {{ system.topicCount || 0 }}</span>
                 </div>
               </div>
               <div class="status-indicator">
@@ -162,8 +161,7 @@ interface SystemStatus {
   name: string
   url: string
   status: 'online' | 'offline'
-  connections?: number
-  messages?: number
+  topicCount?: number
 }
 
 interface StatItem {
@@ -275,13 +273,47 @@ const handleStatClick = (key: keyof Stats) => {
 }
 
 const refreshSystemStatus = async () => {
-  await loadDashboardData()
+  try {
+    // 调用后端刷新系统状态接口
+    const response = await fetch('/api/dashboard/systems/refresh')
+    const result = await response.json()
+    
+    if (result.code === 200) {
+      systemStatus.value = result.data
+    }
+  } catch (error) {
+    console.error('刷新系统状态失败:', error)
+    // 如果刷新失败，重新加载所有数据
+    await loadDashboardData()
+  }
 }
 
 const loadDashboardData = async () => {
   try {
-    // TODO: 调用后端API获取统计数据
-    // 这里先使用模拟数据
+    // 获取统计数据
+    const statsResponse = await fetch('/api/dashboard/stats')
+    const statsResult = await statsResponse.json()
+    
+    if (statsResult.code === 200) {
+      const newStats = statsResult.data
+      stats.value = newStats
+      
+      // 启动数字动画
+      Object.keys(newStats).forEach(key => {
+        animateNumber(newStats[key as keyof Stats], key as keyof Stats)
+      })
+    }
+    
+    // 获取系统状态
+    const statusResponse = await fetch('/api/dashboard/systems/status')
+    const statusResult = await statusResponse.json()
+    
+    if (statusResult.code === 200) {
+      systemStatus.value = statusResult.data
+    }
+  } catch (error) {
+    console.error('加载仪表板数据失败:', error)
+    // 如果API调用失败，使用模拟数据作为后备
     const newStats = {
       systemCount: 2,
       topicCount: 156,
@@ -291,7 +323,6 @@ const loadDashboardData = async () => {
     
     stats.value = newStats
     
-    // 启动数字动画
     Object.keys(newStats).forEach(key => {
       animateNumber(newStats[key as keyof Stats], key as keyof Stats)
     })
@@ -302,20 +333,16 @@ const loadDashboardData = async () => {
         name: '生产环境EMQX',
         url: 'http://emqx-prod.example.com:18083',
         status: 'online',
-        connections: 1234,
-        messages: 56789
+        topicCount: 85
       },
       {
         id: 2,
         name: '测试环境EMQX',
         url: 'http://emqx-test.example.com:18083',
         status: 'offline',
-        connections: 0,
-        messages: 0
+        topicCount: 0
       }
     ]
-  } catch (error) {
-    console.error('加载仪表板数据失败:', error)
   }
 }
 
