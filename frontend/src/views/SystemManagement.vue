@@ -85,6 +85,8 @@
             placeholder="搜索系统名称或地址"
             style="width: 250px"
             clearable
+            @input="updateFilteredSystems"
+            @clear="updateFilteredSystems"
           >
             <template #prefix>
               <el-icon><Search /></el-icon>
@@ -207,17 +209,10 @@ import {
   Edit, 
   Delete 
 } from '@element-plus/icons-vue'
+import { SystemAPI, type SystemManagementDTO, type SystemCreateRequest, type SystemUpdateRequest, type SystemStatsDTO } from '../api/system'
 
-interface EmqxSystem {
-  id?: number
-  name: string
-  url: string
-  username: string
-  password: string
-  description?: string
-  status: 'online' | 'offline'
-  createdAt: string
-  lastCheck?: string
+interface EmqxSystem extends SystemManagementDTO {
+  password?: string
   testing?: boolean
 }
 
@@ -229,24 +224,46 @@ const systemFormRef = ref<FormInstance>()
 const searchKeyword = ref('')
 
 const systems = ref<EmqxSystem[]>([])
+const systemStats = ref<SystemStatsDTO>({
+  totalSystems: 0,
+  onlineSystems: 0,
+  offlineSystems: 0,
+  totalTopics: 0
+})
 
 // 计算属性
-const onlineCount = computed(() => systems.value.filter(s => s.status === 'online').length)
-const offlineCount = computed(() => systems.value.filter(s => s.status === 'offline').length)
-const totalSystems = computed(() => systems.value.length)
-const totalTopics = computed(() => {
-  // TODO: 从后端获取Topic总数
-  return 0
-})
+const onlineCount = computed(() => systemStats.value.onlineSystems)
+const offlineCount = computed(() => systemStats.value.offlineSystems)
+const totalSystems = computed(() => systemStats.value.totalSystems)
+const totalTopics = computed(() => systemStats.value.totalTopics)
 
-const filteredSystems = computed(() => {
-  if (!searchKeyword.value) return systems.value
-  const keyword = searchKeyword.value.toLowerCase()
-  return systems.value.filter(system => 
-    system.name.toLowerCase().includes(keyword) ||
-    system.url.toLowerCase().includes(keyword)
-  )
-})
+const filteredSystems = ref<EmqxSystem[]>([])
+
+// 监听搜索关键词变化
+const searchSystems = async () => {
+  loading.value = true
+  try {
+    const searchResults = await SystemAPI.searchSystems(searchKeyword.value)
+    filteredSystems.value = searchResults.map(system => ({
+      ...system,
+      testing: false
+    }))
+  } catch (error) {
+    console.error('搜索系统失败:', error)
+    ElMessage.error('搜索系统失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 当搜索关键词为空时，显示所有系统
+const updateFilteredSystems = () => {
+  if (!searchKeyword.value.trim()) {
+    filteredSystems.value = systems.value
+  } else {
+    searchSystems()
+  }
+}
 
 const systemForm = reactive({
   name: '',
@@ -275,47 +292,21 @@ const systemRules: FormRules = {
 const loadSystems = async () => {
   loading.value = true
   try {
-    // TODO: 调用后端API获取系统列表
-    // 这里先使用模拟数据
-    systems.value = [
-      {
-        id: 1,
-        name: '生产环境EMQX',
-        url: 'http://emqx-prod.example.com:18083',
-        username: 'admin',
-        password: '******',
-        description: '生产环境的EMQX服务器',
-        status: 'online',
-        createdAt: '2024-01-15',
-        lastCheck: '2024-01-20 15:30:00',
-        testing: false
-      },
-      {
-        id: 2,
-        name: '测试环境EMQX',
-        url: 'http://emqx-test.example.com:18083',
-        username: 'admin',
-        password: '******',
-        description: '测试环境的EMQX服务器',
-        status: 'offline',
-        createdAt: '2024-01-10',
-        lastCheck: '2024-01-20 12:15:00',
-        testing: false
-      },
-      {
-        id: 3,
-        name: '开发环境EMQX',
-        url: 'http://localhost:18083',
-        username: 'admin',
-        password: '******',
-        description: '开发环境的EMQX服务器',
-        status: 'online',
-        createdAt: '2024-01-18',
-        lastCheck: '2024-01-20 16:00:00',
-        testing: false
-      }
-    ]
+    // 调用后端API获取系统列表
+    const systemsData = await SystemAPI.getAllSystems()
+    systems.value = systemsData.map(system => ({
+      ...system,
+      testing: false
+    }))
+    
+    // 更新过滤后的系统列表
+    updateFilteredSystems()
+    
+    // 获取系统统计信息
+    const stats = await SystemAPI.getSystemStats()
+    systemStats.value = stats
   } catch (error) {
+    console.error('加载系统列表失败:', error)
     ElMessage.error('加载系统列表失败')
   } finally {
     loading.value = false
@@ -323,29 +314,51 @@ const loadSystems = async () => {
 }
 
 const refreshSystems = async () => {
-  await loadSystems()
-  ElMessage.success('系统状态已刷新')
+  loading.value = true
+  try {
+    // 调用后端API刷新所有系统状态
+    const refreshedSystems = await SystemAPI.refreshSystemStatus()
+    systems.value = refreshedSystems.map(system => ({
+      ...system,
+      testing: false
+    }))
+    
+    // 重新获取统计信息
+    const stats = await SystemAPI.getSystemStats()
+    systemStats.value = stats
+    
+    ElMessage.success('系统状态已刷新')
+  } catch (error) {
+    console.error('刷新系统状态失败:', error)
+    ElMessage.error('刷新系统状态失败')
+  } finally {
+    loading.value = false
+  }
 }
 
 const testConnection = async (system: EmqxSystem) => {
+  if (!system.id) return
+  
   system.testing = true
   try {
-    // TODO: 调用后端API测试连接
-    // 模拟测试延迟
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    // 调用后端API测试连接
+    const result = await SystemAPI.testConnection(system.id)
     
-    // 模拟测试结果
-    const isSuccess = Math.random() > 0.3
-    if (isSuccess) {
-      system.status = 'online'
-      system.lastCheck = new Date().toLocaleString()
-      ElMessage.success(`${system.name} 连接测试成功`)
-    } else {
-      system.status = 'offline'
-      system.lastCheck = new Date().toLocaleString()
-      ElMessage.error(`${system.name} 连接测试失败`)
-    }
+    // 更新系统状态
+    system.status = result.success ? 'online' : 'offline'
+    system.lastCheck = result.testTime
+    
+    if (result.success) {
+       ElMessage.success(`${system.name} 连接测试成功 (响应时间: ${result.responseTime}ms${result.version ? `, 版本: ${result.version}` : ''})`)
+     } else {
+       ElMessage.error(`${system.name} 连接测试失败: ${result.errorMessage || '连接失败'}`)
+     }
+    
+    // 重新获取统计信息
+    const stats = await SystemAPI.getSystemStats()
+    systemStats.value = stats
   } catch (error) {
+    console.error('连接测试异常:', error)
     ElMessage.error(`${system.name} 连接测试异常`)
   } finally {
     system.testing = false
@@ -365,6 +378,8 @@ const editSystem = (system: EmqxSystem) => {
 }
 
 const deleteSystem = async (system: EmqxSystem) => {
+  if (!system.id) return
+  
   try {
     await ElMessageBox.confirm(
       `确定要删除系统 "${system.name}" 吗？`,
@@ -376,11 +391,18 @@ const deleteSystem = async (system: EmqxSystem) => {
       }
     )
     
-    // TODO: 调用后端API删除系统
+    // 调用后端API删除系统
+    await SystemAPI.deleteSystem(system.id)
     ElMessage.success('删除成功')
-    loadSystems()
-  } catch (error) {
-    // 用户取消操作
+    
+    // 重新加载系统列表
+    await loadSystems()
+  } catch (error: any) {
+    // 如果不是用户取消操作，显示错误信息
+    if (error !== 'cancel') {
+      console.error('删除系统失败:', error)
+      ElMessage.error('删除系统失败')
+    }
   }
 }
 
@@ -391,17 +413,41 @@ const saveSystem = async () => {
     await systemFormRef.value.validate()
     saving.value = true
     
-    // TODO: 调用后端API保存系统
-    if (editingSystem.value) {
+    if (editingSystem.value && editingSystem.value.id) {
+      // 更新系统
+      const updateData: SystemUpdateRequest = {
+        name: systemForm.name,
+        url: systemForm.url,
+        username: systemForm.username,
+        description: systemForm.description
+      }
+      
+      // 只有在密码不为空时才包含密码字段
+      if (systemForm.password) {
+        updateData.password = systemForm.password
+      }
+      
+      await SystemAPI.updateSystem(editingSystem.value.id, updateData)
       ElMessage.success('更新成功')
     } else {
+      // 创建新系统
+      const createData: SystemCreateRequest = {
+        name: systemForm.name,
+        url: systemForm.url,
+        username: systemForm.username,
+        password: systemForm.password,
+        description: systemForm.description
+      }
+      
+      await SystemAPI.createSystem(createData)
       ElMessage.success('添加成功')
     }
     
     showAddDialog.value = false
     resetForm()
-    loadSystems()
-  } catch (error) {
+    await loadSystems()
+  } catch (error: any) {
+    console.error('保存系统失败:', error)
     ElMessage.error('保存失败')
   } finally {
     saving.value = false

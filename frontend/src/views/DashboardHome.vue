@@ -130,6 +130,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { cardIconColors } from './colors.config.js'
 import {
   Setting,
@@ -313,36 +314,7 @@ const loadDashboardData = async () => {
     }
   } catch (error) {
     console.error('加载仪表板数据失败:', error)
-    // 如果API调用失败，使用模拟数据作为后备
-    const newStats = {
-      systemCount: 2,
-      topicCount: 156,
-      groupCount: 8,
-      tagCount: 24
-    }
-    
-    stats.value = newStats
-    
-    Object.keys(newStats).forEach(key => {
-      animateNumber(newStats[key as keyof Stats], key as keyof Stats)
-    })
-    
-    systemStatus.value = [
-      {
-        id: 1,
-        name: '生产环境EMQX',
-        url: 'http://emqx-prod.example.com:18083',
-        status: 'online',
-        topicCount: 85
-      },
-      {
-        id: 2,
-        name: '测试环境EMQX',
-        url: 'http://emqx-test.example.com:18083',
-        status: 'offline',
-        topicCount: 0
-      }
-    ]
+    ElMessage.error('加载仪表板数据失败')
   }
 }
 
