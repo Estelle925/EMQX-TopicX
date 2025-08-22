@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
  * EMQX Topic管理增强服务启动类
- * 
+ *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
  */

@@ -2,7 +2,7 @@ package com.emqx.topichub.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.emqx.topichub.dto.DashboardStatsDTO;
-import com.emqx.topichub.dto.SystemStatusDTO;
+import com.emqx.topichub.dto.DashboardStatusDTO;
 import com.emqx.topichub.entity.EmqxSystem;
 import com.emqx.topichub.entity.Group;
 import com.emqx.topichub.entity.Tag;
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 
 /**
  * 仪表板服务实现类
- * 
+ *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
  */
@@ -43,16 +43,16 @@ public class DashboardService {
     public DashboardStatsDTO getStats() {
         // 统计EMQX系统数量
         Integer systemCount = Math.toIntExact(emqxSystemMapper.selectCount(new QueryWrapper<EmqxSystem>()));
-        
+
         // 统计Topic数量
         Integer topicCount = Math.toIntExact(topicMapper.selectCount(new QueryWrapper<Topic>()));
-        
+
         // 统计分组数量
         Integer groupCount = Math.toIntExact(groupMapper.selectCount(new QueryWrapper<Group>()));
-        
+
         // 统计标签数量
         Integer tagCount = Math.toIntExact(tagMapper.selectCount(new QueryWrapper<Tag>()));
-        
+
         return new DashboardStatsDTO(systemCount, topicCount, groupCount, tagCount);
     }
 
@@ -61,11 +61,11 @@ public class DashboardService {
      *
      * @return 系统状态列表
      */
-    public List<SystemStatusDTO> getSystemStatus() {
+    public List<DashboardStatusDTO> getSystemStatus() {
         List<EmqxSystem> systems = emqxSystemMapper.selectList(new QueryWrapper<>());
-        
+
         return systems.stream().map(system -> {
-            SystemStatusDTO statusDTO = new SystemStatusDTO();
+            DashboardStatusDTO statusDTO = new DashboardStatusDTO();
             statusDTO.setId(system.getId());
             statusDTO.setName(system.getName());
             statusDTO.setUrl(system.getUrl());
@@ -83,21 +83,21 @@ public class DashboardService {
      *
      * @return 更新后的系统状态列表
      */
-    public List<SystemStatusDTO> refreshSystemStatus() {
+    public List<DashboardStatusDTO> refreshSystemStatus() {
         List<EmqxSystem> systems = emqxSystemMapper.selectList(new QueryWrapper<EmqxSystem>());
-        
+
         // 检查每个系统的状态
         for (EmqxSystem system : systems) {
             try {
                 // TODO: 实际调用EMQX API检查系统状态
                 // 这里先模拟状态检查逻辑
                 boolean isOnline = checkSystemHealth(system);
-                
+
                 system.setStatus(isOnline ? "online" : "offline");
                 system.setLastCheck(LocalDateTime.now());
-                
+
                 emqxSystemMapper.updateById(system);
-                
+
                 log.info("系统 {} 状态检查完成，状态: {}", system.getName(), system.getStatus());
             } catch (Exception e) {
                 log.error("检查系统 {} 状态时发生错误: {}", system.getName(), e.getMessage());
@@ -106,14 +106,14 @@ public class DashboardService {
                 emqxSystemMapper.updateById(system);
             }
         }
-        
+
         return getSystemStatus();
     }
 
     /**
      * 检查系统健康状态
      * TODO: 实现实际的EMQX API调用逻辑
-     * 
+     *
      * @param system EMQX系统
      * @return 是否在线
      */

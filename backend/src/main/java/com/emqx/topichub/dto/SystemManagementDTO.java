@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 /**
  * 系统管理DTO
  * 用于系统管理页面的数据传输
- * 
+ *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
  */

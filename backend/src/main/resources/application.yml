@@ -13,13 +13,13 @@ spring:
     url: jdbc:mysql://localhost:3306/emqx_topic_hub?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
     username: root
     password: 123456
-    
+
   # Redis配置
   data:
     redis:
       host: localhost
       port: 6379
-      password: 
+      password:
       database: 0
       timeout: 5000ms
       lettuce:

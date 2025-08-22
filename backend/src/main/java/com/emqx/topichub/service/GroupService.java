@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class GroupService extends ServiceImpl<GroupMapper, Group> {
-    
+
     // 可以在这里添加自定义的业务方法
-    
+
 }

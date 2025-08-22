@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 /**
  * Topic实体类
  * 用于管理MQTT Topic信息
- * 
+ *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
  */

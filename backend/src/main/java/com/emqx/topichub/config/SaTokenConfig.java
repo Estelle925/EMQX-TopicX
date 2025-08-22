@@ -10,7 +10,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 /**
  * Sa-Token 配置类
  * 配置路由拦截器和权限认证
- * 
+ *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
  */
@@ -26,13 +26,13 @@ public class SaTokenConfig implements WebMvcConfigurer {
         registry.addInterceptor(new SaInterceptor(handle -> {
             // 指定一条 match 规则
             SaRouter
-                .match("/**")
-                .notMatch("/api/auth/login")
-                .notMatch("/api/auth/logout")
-                .notMatch("/error")
-                .notMatch("/favicon.ico")
-                .notMatch("/actuator/**")
-                .check(r -> StpUtil.checkLogin());
+                    .match("/**")
+                    .notMatch("/api/auth/login")
+                    .notMatch("/api/auth/logout")
+                    .notMatch("/error")
+                    .notMatch("/favicon.ico")
+                    .notMatch("/actuator/**")
+                    .check(r -> StpUtil.checkLogin());
         })).addPathPatterns("/**");
     }
 }

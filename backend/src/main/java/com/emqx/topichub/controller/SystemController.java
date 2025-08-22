@@ -1,21 +1,18 @@
 package com.emqx.topichub.controller;
 
 import com.emqx.topichub.common.Result;
-import com.emqx.topichub.dto.ConnectionTestResult;
-import com.emqx.topichub.dto.SystemCreateRequest;
-import com.emqx.topichub.dto.SystemManagementDTO;
-import com.emqx.topichub.dto.SystemUpdateRequest;
+import com.emqx.topichub.dto.*;
 import com.emqx.topichub.service.EmqxSystemService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
 import java.util.List;
 
 /**
  * 系统管理控制器
  * 提供EMQX系统管理相关的API接口
- * 
+ *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
  */
@@ -28,7 +25,7 @@ public class SystemController {
 
     /**
      * 获取所有系统列表
-     * 
+     *
      * @return 系统列表
      */
     @GetMapping
@@ -39,7 +36,7 @@ public class SystemController {
 
     /**
      * 根据关键词搜索系统
-     * 
+     *
      * @param keyword 搜索关键词
      * @return 系统列表
      */
@@ -51,7 +48,7 @@ public class SystemController {
 
     /**
      * 根据ID获取系统详情
-     * 
+     *
      * @param id 系统ID
      * @return 系统详情
      */
@@ -62,17 +59,17 @@ public class SystemController {
                 .filter(s -> s.getId().equals(id))
                 .findFirst()
                 .orElse(null);
-        
+
         if (system == null) {
             return Result.error("系统不存在");
         }
-        
+
         return Result.success(system);
     }
 
     /**
      * 创建新系统
-     * 
+     *
      * @param request 创建请求
      * @return 创建的系统信息
      */
@@ -88,14 +85,14 @@ public class SystemController {
 
     /**
      * 更新系统信息
-     * 
-     * @param id 系统ID
+     *
+     * @param id      系统ID
      * @param request 更新请求
      * @return 更新后的系统信息
      */
     @PutMapping("/{id}")
-    public Result<SystemManagementDTO> updateSystem(@PathVariable Long id, 
-                                                   @Valid @RequestBody SystemUpdateRequest request) {
+    public Result<SystemManagementDTO> updateSystem(@PathVariable Long id,
+                                                    @Valid @RequestBody SystemUpdateRequest request) {
         try {
             SystemManagementDTO system = emqxSystemService.updateSystem(id, request);
             return Result.success("系统更新成功", system);
@@ -106,7 +103,7 @@ public class SystemController {
 
     /**
      * 删除系统
-     * 
+     *
      * @param id 系统ID
      * @return 操作结果
      */
@@ -122,7 +119,7 @@ public class SystemController {
 
     /**
      * 测试系统连接
-     * 
+     *
      * @param id 系统ID
      * @return 连接测试结果
      */
@@ -139,7 +136,7 @@ public class SystemController {
 
     /**
      * 刷新所有系统状态
-     * 
+     *
      * @return 更新后的系统列表
      */
     @PostMapping("/refresh-status")
@@ -154,13 +151,13 @@ public class SystemController {
 
     /**
      * 获取系统统计信息
-     * 
+     *
      * @return 统计信息
      */
     @GetMapping("/stats")
-    public Result<EmqxSystemService.SystemStatsDTO> getSystemStats() {
+    public Result<SystemStatsDTO> getSystemStats() {
         try {
-            EmqxSystemService.SystemStatsDTO stats = emqxSystemService.getSystemStats();
+            SystemStatsDTO stats = emqxSystemService.getSystemStats();
             return Result.success(stats);
         } catch (Exception e) {
             return Result.error("获取统计信息失败: " + e.getMessage());

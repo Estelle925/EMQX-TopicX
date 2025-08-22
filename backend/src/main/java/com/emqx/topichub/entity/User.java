@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 /**
  * 用户实体类
  * 用于系统用户管理和认证
- * 
+ *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
  */

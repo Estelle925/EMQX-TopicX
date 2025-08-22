@@ -7,7 +7,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 /**
  * Web配置类
  * 配置跨域访问等Web相关设置
- * 
+ *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
  */

@@ -12,16 +12,16 @@ import java.time.LocalDateTime;
 /**
  * 用户服务类
  * 处理用户相关业务逻辑
- * 
+ *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
  */
 @Service
 public class UserService extends ServiceImpl<UserMapper, User> {
-    
+
     /**
      * 根据用户名查询用户
-     * 
+     *
      * @param username 用户名
      * @return 用户信息
      */
@@ -30,10 +30,10 @@ public class UserService extends ServiceImpl<UserMapper, User> {
                 .eq(User::getUsername, username)
                 .eq(User::getDeleted, false));
     }
-    
+
     /**
      * 验证用户登录
-     * 
+     *
      * @param username 用户名
      * @param password 密码
      * @return 用户信息，验证失败返回null
@@ -43,24 +43,24 @@ public class UserService extends ServiceImpl<UserMapper, User> {
         if (user == null) {
             return null;
         }
-        
+
         // 验证密码（这里使用MD5加密，实际项目建议使用BCrypt）
         String encryptedPassword = DigestUtils.md5DigestAsHex(password.getBytes());
         if (!encryptedPassword.equals(user.getPassword())) {
             return null;
         }
-        
+
         // 检查用户状态
         if (user.getStatus().equals(1)) {
             throw new RuntimeException("用户已被禁用");
         }
-        
+
         return user;
     }
-    
+
     /**
      * 更新用户最后登录时间
-     * 
+     *
      * @param userId 用户ID
      */
     public void updateLastLoginTime(Long userId) {
@@ -69,5 +69,5 @@ public class UserService extends ServiceImpl<UserMapper, User> {
         user.setLastLogin(LocalDateTime.now());
         this.updateById(user);
     }
-    
+
 }

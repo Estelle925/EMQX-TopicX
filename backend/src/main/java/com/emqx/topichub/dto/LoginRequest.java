@@ -1,12 +1,11 @@
 package com.emqx.topichub.dto;
 
-import lombok.Data;
-
 import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
 
 /**
  * 登录请求参数
- * 
+ *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
  */

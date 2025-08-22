@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 /**
  * EMQX系统实体类
  * 用于管理多个EMQX服务器实例
- * 
+ *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
  */

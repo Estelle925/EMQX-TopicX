@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 /**
  * MyBatis Plus配置类
  * 配置分页插件和自动填充
- * 
+ *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
  */

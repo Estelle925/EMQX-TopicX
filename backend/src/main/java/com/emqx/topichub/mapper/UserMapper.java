@@ -6,7 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface UserMapper extends BaseMapper<User> {
-    
+
     // 可以在这里添加自定义的SQL方法
-    
+
 }

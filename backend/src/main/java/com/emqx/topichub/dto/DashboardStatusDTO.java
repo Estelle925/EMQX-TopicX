@@ -9,14 +9,14 @@ import java.time.LocalDateTime;
 /**
  * 系统状态DTO
  * 用于封装EMQX系统的状态信息
- * 
+ *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class SystemStatusDTO {
+public class DashboardStatusDTO {
 
     /**
      * 系统ID

@@ -6,7 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface EmqxSystemMapper extends BaseMapper<EmqxSystem> {
-    
+
     // 可以在这里添加自定义的SQL方法
-    
+
 }

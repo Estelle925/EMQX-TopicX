@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class TopicService extends ServiceImpl<TopicMapper, Topic> {
-    
+
     // 可以在这里添加自定义的业务方法
-    
+
 }

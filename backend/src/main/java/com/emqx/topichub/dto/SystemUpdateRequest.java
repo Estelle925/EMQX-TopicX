@@ -1,15 +1,13 @@
 package com.emqx.topichub.dto;
 
-import lombok.Data;
-
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import jakarta.validation.constraints.Pattern;
+import lombok.Data;
 
 /**
  * 更新系统请求DTO
  * 用于接收更新EMQX系统的请求参数
- * 
+ *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
  */

@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * 登录响应结果
- * 
+ *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
  */

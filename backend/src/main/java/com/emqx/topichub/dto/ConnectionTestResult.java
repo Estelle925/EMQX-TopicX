@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 /**
  * 连接测试结果DTO
  * 用于封装EMQX系统连接测试的详细结果
- * 
+ *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
  */
@@ -65,16 +65,16 @@ public class ConnectionTestResult {
 
     /**
      * 创建成功的测试结果
-     * 
-     * @param systemId 系统ID
-     * @param systemName 系统名称
+     *
+     * @param systemId     系统ID
+     * @param systemName   系统名称
      * @param responseTime 响应时间
-     * @param version EMQX版本
-     * @param nodeInfo 节点信息
+     * @param version      EMQX版本
+     * @param nodeInfo     节点信息
      * @return 测试结果
      */
-    public static ConnectionTestResult success(Long systemId, String systemName, 
-                                             Long responseTime, String version, String nodeInfo) {
+    public static ConnectionTestResult success(Long systemId, String systemName,
+                                               Long responseTime, String version, String nodeInfo) {
         ConnectionTestResult result = new ConnectionTestResult();
         result.setSystemId(systemId);
         result.setSystemName(systemName);
@@ -89,9 +89,9 @@ public class ConnectionTestResult {
 
     /**
      * 创建失败的测试结果
-     * 
-     * @param systemId 系统ID
-     * @param systemName 系统名称
+     *
+     * @param systemId     系统ID
+     * @param systemName   系统名称
      * @param errorMessage 错误信息
      * @return 测试结果
      */

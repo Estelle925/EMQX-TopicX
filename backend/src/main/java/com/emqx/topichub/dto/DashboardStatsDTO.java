@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 /**
  * 仪表板统计数据DTO
  * 用于封装仪表板页面所需的统计信息
- * 
+ *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
  */
