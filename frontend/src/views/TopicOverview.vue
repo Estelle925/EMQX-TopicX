@@ -155,7 +155,13 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="标签" min-width="200" align="center">
+        <el-table-column prop="path" label="Topic路径" min-width="200" align="center">
+          <template #default="{ row }">
+            <span class="topic-path-text">{{ row.path || row.name }}</span>
+          </template>
+        </el-table-column>
+        
+        <el-table-column label="标签" min-width="180" align="center">
           <template #default="{ row }">
             <div class="tags-container">
               <el-tag
@@ -176,6 +182,18 @@
                 +{{ (row.tags || []).length - 3 }}
               </el-tag>
             </div>
+          </template>
+        </el-table-column>
+        
+        <el-table-column prop="createdAt" label="创建时间" min-width="160" align="center">
+          <template #default="{ row }">
+            <span class="time-text">{{ formatDateTime(row.createdAt) }}</span>
+          </template>
+        </el-table-column>
+        
+        <el-table-column prop="updatedAt" label="更新时间" min-width="160" align="center">
+          <template #default="{ row }">
+            <span class="time-text">{{ formatDateTime(row.updatedAt) }}</span>
           </template>
         </el-table-column>
 
@@ -277,6 +295,8 @@ interface Topic {
   messageCount: number
   lastActivity: string
   status: 'active' | 'inactive'
+  createdAt: string
+  updatedAt: string
 }
 
 interface Group {
@@ -388,6 +408,18 @@ const formatTime = (timeStr: string) => {
   return timeStr.split(' ')[0]
 }
 
+const formatDateTime = (timeStr: string) => {
+  if (!timeStr) return '-'
+  const date = new Date(timeStr)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
 const loadSystems = async () => {
   try {
     // TODO: 调用后端API获取系统列表
@@ -423,7 +455,9 @@ const loadTopics = async () => {
         clientCount: 25,
         messageCount: 1250,
         lastActivity: '2024-01-15 14:30:00',
-        status: 'active'
+        status: 'active',
+        createdAt: '2024-01-10 09:15:30',
+        updatedAt: '2024-01-15 14:30:00'
       },
       {
         id: 2,
@@ -434,7 +468,9 @@ const loadTopics = async () => {
         clientCount: 12,
         messageCount: 890,
         lastActivity: '2024-01-15 14:25:00',
-        status: 'active'
+        status: 'active',
+        createdAt: '2024-01-12 16:20:45',
+        updatedAt: '2024-01-15 14:25:00'
       },
       {
         id: 3,
@@ -443,7 +479,9 @@ const loadTopics = async () => {
         clientCount: 5,
         messageCount: 45,
         lastActivity: '2024-01-15 13:45:00',
-        status: 'inactive'
+        status: 'inactive',
+        createdAt: '2024-01-08 11:30:15',
+        updatedAt: '2024-01-15 13:45:00'
       },
       {
         id: 4,
@@ -457,7 +495,9 @@ const loadTopics = async () => {
         clientCount: 8,
         messageCount: 320,
         lastActivity: '2024-01-15 13:20:00',
-        status: 'active'
+        status: 'active',
+        createdAt: '2024-01-14 08:45:20',
+        updatedAt: '2024-01-15 13:20:00'
       }
     ]
   } catch (error) {
@@ -939,6 +979,22 @@ const calculateTableHeight = () => {
   padding: 2px 6px;
   border-radius: var(--radius-sm);
   display: inline-block;
+}
+
+.topic-path-text {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: rgba(16, 185, 129, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.time-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 /* 状态指示器 */

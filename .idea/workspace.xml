@@ -4,15 +4,32 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="02d7fa69-1b7e-42d8-86c6-e16e58a3c527" name="更改" comment="" />
+    <list default="true" id="02d7fa69-1b7e-42d8-86c6-e16e58a3c527" name="更改" comment="">
+      <change beforePath="$PROJECT_DIR$/frontend/src/views/TopicOverview.vue" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/views/TopicOverview.vue" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 1
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "Estelle925"
+  }
 }]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/Estelle925/EmqxTopicHub.git",
+    "accountId": "e6a6a863-9c47-464b-b34c-71cf04812ab8"
+  }
+}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 1
+}</component>
   <component name="ProjectId" id="31aQxe9NCO4tysZaeH19ZHTRruC" />
   <component name="ProjectViewState">
     <option name="autoscrollFromSource" value="true" />
@@ -23,6 +40,9 @@
   "keyToString": {
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "D:/Code/EmqxTopicHub",
     "node.js.detected.package.eslint": "true",
@@ -61,6 +81,7 @@
       <updated>1743132420231</updated>
       <workItem from="1743132421748" duration="101000" />
       <workItem from="1755759953663" duration="3054000" />
+      <workItem from="1755833478571" duration="2209000" />
     </task>
     <servers />
   </component>
