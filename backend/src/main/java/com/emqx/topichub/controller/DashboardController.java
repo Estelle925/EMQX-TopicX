@@ -3,7 +3,7 @@ package com.emqx.topichub.controller;
 import com.emqx.topichub.common.Result;
 import com.emqx.topichub.dto.DashboardStatsDTO;
 import com.emqx.topichub.dto.SystemStatusDTO;
-import com.emqx.topichub.facade.DashboardService;
+import com.emqx.topichub.service.DashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

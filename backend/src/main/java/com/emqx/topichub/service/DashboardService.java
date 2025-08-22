@@ -1,4 +1,4 @@
-package com.emqx.topichub.facade;
+package com.emqx.topichub.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.emqx.topichub.dto.DashboardStatsDTO;
