@@ -680,15 +680,15 @@ onMounted(() => {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   background: white;
-  transition: all 0.3s ease;
+  transition: none !important;
   position: relative;
   overflow: hidden;
   padding: var(--spacing-lg);
 }
 
 .stat-card:hover {
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-1px);
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 .stat-header {
@@ -768,6 +768,13 @@ onMounted(() => {
   backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
+  transition: none !important;
+}
+
+.groups-card:hover,
+.tags-card:hover {
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 
@@ -901,7 +908,7 @@ onMounted(() => {
 }
 
 .color-preset:hover {
-  transform: scale(1.1);
+  transform: none !important;
 }
 
 /* Element Plus 组件样式覆盖 */
@@ -968,8 +975,8 @@ onMounted(() => {
 }
 
 :deep(.el-table__body tr:hover > td) {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05)) !important;
-  transform: translateY(-1px);
+  background: transparent !important;
+  transform: none !important;
 }
 
 :deep(.el-table tr:last-child td) {
@@ -990,7 +997,7 @@ onMounted(() => {
 
 :deep(.el-button--primary:hover) {
   background: linear-gradient(135deg, #337ecc, #5a9cff);
-  transform: translateY(-1px);
+  transform: none !important;
 }
 
 :deep(.el-button--danger) {
@@ -1000,7 +1007,7 @@ onMounted(() => {
 
 :deep(.el-button--danger:hover) {
   background: linear-gradient(135deg, #e85656, #f56c6c);
-  transform: translateY(-1px);
+  transform: none !important;
 }
 
 :deep(.el-button--small) {

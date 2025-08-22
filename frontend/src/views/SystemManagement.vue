@@ -439,8 +439,8 @@ onMounted(() => {
   --border-color: #e0e0e0;
   --bg-glass: rgba(255, 255, 255, 0.95);
   --bg-hover: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-sm: none;
+  --shadow-md: none;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -516,14 +516,14 @@ onMounted(() => {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   background: white;
-  transition: all 0.3s ease;
+  transition: none !important;
   position: relative;
   overflow: hidden;
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 
@@ -611,6 +611,12 @@ onMounted(() => {
   backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
+  transition: none !important;
+}
+
+.systems-table:hover {
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 
@@ -675,12 +681,12 @@ onMounted(() => {
 
 .status-dot.online {
   background: linear-gradient(135deg, #67c23a, #85ce61);
-  box-shadow: 0 0 0 2px rgba(103, 194, 58, 0.2);
+  box-shadow: none;
 }
 
 .status-dot.offline {
   background: linear-gradient(135deg, #f56c6c, #f78989);
-  box-shadow: 0 0 0 2px rgba(245, 108, 108, 0.2);
+  box-shadow: none;
 }
 
 .status-text.online {
@@ -735,8 +741,8 @@ onMounted(() => {
 }
 
 :deep(.el-table tr:hover > td) {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
-  transform: translateY(-1px);
+  background: transparent !important;
+  transform: none !important;
 }
 
 :deep(.el-table tr:last-child td) {
@@ -756,7 +762,7 @@ onMounted(() => {
 
 :deep(.el-button--primary:hover) {
   background: linear-gradient(135deg, #337ecc, #5a9cff);
-  transform: translateY(-1px);
+  transform: none !important;
 }
 
 :deep(.el-button--danger) {
@@ -766,7 +772,7 @@ onMounted(() => {
 
 :deep(.el-button--danger:hover) {
   background: linear-gradient(135deg, #e85656, #f56c6c);
-  transform: translateY(-1px);
+  transform: none !important;
 }
 
 :deep(.el-button--small) {
@@ -790,13 +796,22 @@ onMounted(() => {
 }
 
 :deep(.el-link:hover) {
-   transform: translateX(2px);
+   transform: none !important;
  }
 
  /* 响应式设计 */
  @media (max-width: 1200px) {
    .stats-cards .el-col {
      margin-bottom: var(--spacing-md);
+   }
+ }
+
+ /* 平板设备 - 2列布局 */
+ @media (max-width: 992px) {
+   .stats-cards .el-col {
+     width: 50% !important;
+     flex: 0 0 50% !important;
+     max-width: 50% !important;
    }
  }
 
@@ -808,6 +823,13 @@ onMounted(() => {
    .page-header {
      padding: var(--spacing-lg);
      margin-bottom: var(--spacing-lg);
+     flex-direction: column;
+     gap: var(--spacing-md);
+     align-items: stretch;
+   }
+   
+   .header-actions {
+     justify-content: center;
    }
    
    .header-left h2 {
@@ -842,6 +864,16 @@ onMounted(() => {
    }
  }
 
+ /* 手机设备 - 单列布局 */
+ @media (max-width: 576px) {
+   .stats-cards .el-col {
+     width: 100% !important;
+     flex: 0 0 100% !important;
+     max-width: 100% !important;
+     margin-bottom: var(--spacing-md);
+   }
+ }
+
  @media (max-width: 480px) {
    .system-management {
      padding: var(--spacing-sm);
@@ -855,6 +887,11 @@ onMounted(() => {
      font-size: 20px;
    }
    
+   .header-actions {
+     flex-direction: column;
+     gap: var(--spacing-sm);
+   }
+   
    .stat-content {
      flex-direction: column;
      text-align: center;
@@ -864,6 +901,17 @@ onMounted(() => {
    .stat-icon {
      margin-right: 0;
      margin-bottom: var(--spacing-sm);
+     width: 40px;
+     height: 40px;
+     font-size: 18px;
+   }
+   
+   .stat-value {
+     font-size: 20px;
+   }
+   
+   .stat-label {
+     font-size: 12px;
    }
  }
 
@@ -946,7 +994,7 @@ onMounted(() => {
  }
 
  .stat-card:hover::after {
-   animation-play-state: paused;
+   animation-play-state: running;
  }
 
  /* 平滑滚动 */
@@ -963,6 +1011,15 @@ onMounted(() => {
 
  /* 过渡效果 */
  * {
-   transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+   transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+ }
+ 
+ /* 禁用特定元素的transform和box-shadow过渡效果 */
+ .stat-card,
+ .systems-table,
+ :deep(.el-table tr),
+ :deep(.el-button),
+ :deep(.el-link) {
+   transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease !important;
  }
  </style>

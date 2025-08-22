@@ -4,8 +4,10 @@
       <!-- 侧边栏 -->
       <el-aside :width="sidebarWidth" class="sidebar" :class="{ 'sidebar-collapsed': isCollapsed }">
         <div class="logo" :class="{ 'logo-collapsed': isCollapsed }">
-          <h2 v-if="!isCollapsed">EMQX Topic Hub</h2>
-          <h2 v-else>ET</h2>
+          <div class="logo-content">
+            <img src="/logo.svg" alt="Logo" class="logo-icon" />
+            <h2 v-if="!isCollapsed">EMQX Hub</h2>
+          </div>
         </div>
         
         <el-menu
@@ -119,7 +121,7 @@ const isCollapsed = ref(false)
 const activeMenu = computed(() => route.path)
 
 // 侧边栏宽度计算
-const sidebarWidth = computed(() => isCollapsed.value ? '64px' : '250px')
+const sidebarWidth = computed(() => isCollapsed.value ? '56px' : '200px')
 
 // 切换侧边栏折叠状态
 const toggleSidebar = () => {
@@ -187,7 +189,7 @@ onMounted(() => {
 }
 
 .sidebar-collapsed {
-  width: 64px !important;
+  width: 56px !important;
 }
 
 .sidebar-collapsed .logo h2 {
@@ -252,6 +254,10 @@ onMounted(() => {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(0, 0, 0, 0.2);
   position: relative;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .logo::after {
@@ -265,24 +271,49 @@ onMounted(() => {
   background: var(--primary-gradient);
 }
 
+.logo-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+}
+
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
 .logo h2 {
   color: var(--text-inverse);
   margin: 0;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   background: var(--primary-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
 }
 
 .logo-collapsed {
   text-align: center;
+  padding: var(--spacing-md);
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.logo-collapsed h2 {
-  font-size: 16px;
+.logo-collapsed .logo-content {
+  flex-direction: column;
+  gap: 0;
+}
+
+.logo-collapsed .logo-icon {
+  width: 28px;
+  height: 28px;
 }
 
 .sidebar-menu {
@@ -341,10 +372,19 @@ onMounted(() => {
 .menu-collapsed .el-menu-item {
   text-align: center;
   margin: var(--spacing-xs) var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md) var(--spacing-xs);
 }
 
 .menu-collapsed .el-menu-item .el-icon {
   margin-right: 0 !important;
+  font-size: 20px;
+}
+
+.menu-collapsed .el-menu-item span {
+  display: none;
 }
 
 
