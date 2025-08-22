@@ -60,15 +60,26 @@ const router = createRouter({
   ]
 })
 
-// 路由守卫 - 简化版本，无需认证检查
+// 路由守卫 - 认证检查
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
   
-  // 初始化认证状态（默认已登录）
+  // 初始化认证状态
   authStore.initAuth()
   
-  // 直接允许访问所有页面
-  next()
+  // 检查路由是否需要认证
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth !== false)
+  
+  if (requiresAuth && !authStore.isLoggedIn) {
+    // 需要认证但未登录，重定向到登录页
+    next('/login')
+  } else if (to.path === '/login' && authStore.isLoggedIn) {
+    // 已登录用户访问登录页，重定向到仪表板
+    next('/dashboard')
+  } else {
+    // 允许访问
+    next()
+  }
 })
 
 export default router

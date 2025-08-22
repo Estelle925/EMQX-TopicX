@@ -97,7 +97,6 @@ const handleLogin = async () => {
     await loginFormRef.value.validate()
     loading.value = true
     
-    // 简化登录流程，直接设置登录状态并跳转
     await authStore.login({
       username: loginForm.username,
       password: loginForm.password
@@ -106,9 +105,8 @@ const handleLogin = async () => {
     ElMessage.success('登录成功')
     router.push('/dashboard')
   } catch (error: any) {
-    // 即使出错也允许进入，因为已经放开了登录限制
-    ElMessage.success('已进入管理页面')
-    router.push('/dashboard')
+    console.error('登录失败:', error)
+    ElMessage.error(error.response?.data?.message || error.message || '登录失败，请检查用户名和密码')
   } finally {
     loading.value = false
   }
