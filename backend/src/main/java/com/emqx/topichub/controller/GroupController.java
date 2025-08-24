@@ -15,8 +15,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 分组管理控制器
- * 提供分组管理相关的API接口
+ * 业务管理控制器
+ * 提供业务管理相关的API接口
  *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
@@ -29,67 +29,68 @@ public class GroupController {
     private final GroupService groupService;
 
     /**
-     * 获取所有分组列表
+     * 获取所有业务列表
      *
-     * @return 分组列表
+     * @return 业务列表
      */
     @GetMapping
     public Result<List<GroupDTO>> getAllGroups() {
         List<Group> groups = groupService.list();
-        List<GroupDTO> groupDTOs = groups.stream()
+        List<GroupDTO> groupDtoList = groups.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
-        return Result.success(groupDTOs);
+        return Result.success(groupDtoList);
     }
 
     /**
-     * 根据ID获取分组详情
+     * 根据ID获取业务详情
      *
-     * @param id 分组ID
-     * @return 分组详情
+     * @param id 业务ID
+     * @return 业务详情
      */
     @GetMapping("/{id}")
-    public Result<GroupDTO> getGroupById(@PathVariable Long id) {
+    public Result<GroupDTO> getGroupById(@PathVariable("id") Long id) {
         Group group = groupService.getById(id);
         if (group == null) {
-            return Result.error("分组不存在");
+            return Result.error("业务不存在");
         }
         return Result.success(convertToDTO(group));
     }
 
     /**
-     * 创建新分组
+     * 创建新业务
      *
-     * @param request 创建分组请求
-     * @return 创建的分组信息
+     * @param request 创建业务请求
+     * @return 创建的业务信息
      */
     @PostMapping
     public Result<GroupDTO> createGroup(@Valid @RequestBody GroupCreateRequest request) {
         Group group = new Group();
         BeanUtils.copyProperties(request, group);
-        group.setTopicCount(0); // 初始化Topic数量为0
+        // 初始化Topic数量为0
+        group.setTopicCount(0);
         
         boolean saved = groupService.save(group);
         if (saved) {
             return Result.success(convertToDTO(group));
         } else {
-            return Result.error("创建分组失败");
+            return Result.error("创建业务失败");
         }
     }
 
     /**
-     * 更新分组信息
+     * 更新业务信息
      *
-     * @param id 分组ID
-     * @param request 更新分组请求
-     * @return 更新后的分组信息
+     * @param id 业务ID
+     * @param request 更新业务请求
+     * @return 更新后的业务信息
      */
     @PutMapping("/{id}")
-    public Result<GroupDTO> updateGroup(@PathVariable Long id,
+    public Result<GroupDTO> updateGroup(@PathVariable("id") Long id,
                                        @Valid @RequestBody GroupUpdateRequest request) {
         Group existingGroup = groupService.getById(id);
         if (existingGroup == null) {
-            return Result.error("分组不存在");
+            return Result.error("业务不存在");
         }
         
         BeanUtils.copyProperties(request, existingGroup);
@@ -97,36 +98,36 @@ public class GroupController {
         if (updated) {
             return Result.success(convertToDTO(existingGroup));
         } else {
-            return Result.error("更新分组失败");
+            return Result.error("更新业务失败");
         }
     }
 
     /**
-     * 删除分组
+     * 删除业务
      *
-     * @param id 分组ID
+     * @param id 业务ID
      * @return 删除结果
      */
     @DeleteMapping("/{id}")
-    public Result<Void> deleteGroup(@PathVariable Long id) {
+    public Result<Void> deleteGroup(@PathVariable("id") Long id) {
         Group existingGroup = groupService.getById(id);
         if (existingGroup == null) {
-            return Result.error("分组不存在");
+            return Result.error("业务不存在");
         }
         
         boolean deleted = groupService.removeById(id);
         if (deleted) {
             return Result.success(null);
         } else {
-            return Result.error("删除分组失败");
+            return Result.error("删除业务失败");
         }
     }
 
     /**
-     * 根据关键词搜索分组
+     * 根据关键词搜索业务
      *
      * @param keyword 搜索关键词
-     * @return 分组列表
+     * @return 业务列表
      */
     @GetMapping("/search")
     public Result<List<GroupDTO>> searchGroups(@RequestParam(required = false) String keyword) {
@@ -141,10 +142,10 @@ public class GroupController {
                     .list();
         }
         
-        List<GroupDTO> groupDTOs = groups.stream()
+        List<GroupDTO> groupDtoList = groups.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
-        return Result.success(groupDTOs);
+        return Result.success(groupDtoList);
     }
 
     /**

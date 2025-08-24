@@ -13,6 +13,7 @@ import com.emqx.topichub.mapper.TopicMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
@@ -20,6 +21,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * @author EMQX Topic Hub Team
+ */
 @Service
 @RequiredArgsConstructor
 public class TopicService extends ServiceImpl<TopicMapper, Topic> {
@@ -48,7 +52,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             );
         }
 
-        // 分组筛选
+        // 业务筛选
         if (request.getGroupId() != null) {
             queryWrapper.eq("group_id", request.getGroupId());
         }
@@ -59,10 +63,16 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         }
 
         // 排序
-        if ("asc".equalsIgnoreCase(request.getSortDir())) {
-            queryWrapper.orderByAsc(request.getSortBy());
-        } else {
-            queryWrapper.orderByDesc(request.getSortBy());
+        if (StringUtils.hasText(request.getSortBy())) {
+            String sortBy = request.getSortBy();
+            //驼峰转下划线
+            String asc = "asc";
+            sortBy = sortBy.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
+            if (asc.equalsIgnoreCase(request.getSortDir())) {
+                queryWrapper.orderByAsc(sortBy);
+            } else {
+                queryWrapper.orderByDesc(sortBy);
+            }
         }
 
         // 分页查询
@@ -70,13 +80,13 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         IPage<Topic> topicPage = this.page(page, queryWrapper);
 
         // 转换为DTO
-        List<TopicDTO> topicDTOs = topicPage.getRecords().stream()
+        List<TopicDTO> topicDtoList = topicPage.getRecords().stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
 
         // 如果有标签筛选，需要进一步过滤
         if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
-            topicDTOs = topicDTOs.stream()
+            topicDtoList = topicDtoList.stream()
                     .filter(topic -> topic.getTags().stream()
                             .anyMatch(tag -> request.getTagIds().contains(tag.getId())))
                     .collect(Collectors.toList());
@@ -84,7 +94,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
 
         // 构建返回结果
         Page<TopicDTO> resultPage = new Page<>(request.getPage(), request.getSize());
-        resultPage.setRecords(topicDTOs);
+        resultPage.setRecords(topicDtoList);
         resultPage.setTotal(topicPage.getTotal());
         resultPage.setPages(topicPage.getPages());
 
@@ -97,7 +107,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
      * @param id Topic ID
      * @return Topic详情
      */
-    public TopicDTO getTopicDTOById(Long id) {
+    public TopicDTO getTopicDtoById(Long id) {
         Topic topic = this.getById(id);
         if (topic == null || topic.getDeleted() != 0) {
             throw new RuntimeException("Topic不存在");
@@ -211,6 +221,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
      *
      * @param request 批量操作请求
      */
+    @Transactional(rollbackFor = Exception.class)
     public void batchOperation(TopicBatchRequest request) {
         List<Topic> topics = this.listByIds(request.getTopicIds());
         if (topics.size() != request.getTopicIds().size()) {
@@ -255,7 +266,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         // 获取现有标签
         List<Long> existingTagIds = getTagsByTopicId(id).stream()
                 .map(TagDTO::getId)
-                .collect(Collectors.toList());
+                .toList();
 
         // 过滤出新标签
         List<Long> newTagIds = tagIds.stream()
@@ -301,7 +312,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         TopicDTO dto = new TopicDTO();
         BeanUtils.copyProperties(topic, dto);
 
-        // 设置分组名称
+        // 设置业务名称
         if (topic.getGroupId() != null) {
             Group group = groupService.getById(topic.getGroupId());
             if (group != null && group.getDeleted() == 0) {
@@ -387,9 +398,10 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
     }
 
     /**
-     * 批量分配分组
+     * 批量分配业务
      */
-    private void batchAssignGroup(List<Long> topicIds, Long groupId) {
+    @Transactional(rollbackFor = Exception.class)
+    public void batchAssignGroup(List<Long> topicIds, Long groupId) {
         List<Topic> topics = this.listByIds(topicIds);
         topics.forEach(topic -> {
             topic.setGroupId(groupId);
@@ -406,7 +418,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             // 获取现有标签
             List<Long> existingTagIds = getTagsByTopicId(topicId).stream()
                     .map(TagDTO::getId)
-                    .collect(Collectors.toList());
+                    .toList();
 
             // 过滤出新标签
             List<Long> newTagIds = tagIds.stream()

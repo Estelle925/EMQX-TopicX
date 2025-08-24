@@ -45,8 +45,8 @@ export interface ConnectionTestResult {
 
 export interface SystemStatsDTO {
   totalSystems: number
-  onlineSystems: number
-  offlineSystems: number
+  onlineCount: number
+  offlineCount: number
   totalTopics: number
 }
 
@@ -56,42 +56,37 @@ export class SystemAPI {
    * 获取所有系统列表
    */
   static async getAllSystems(): Promise<SystemManagementDTO[]> {
-    const response = await request.get('/systems')
-    return response.data.data
+    return await request.get('/systems')
   }
 
   /**
    * 根据关键词搜索系统
    */
   static async searchSystems(keyword?: string): Promise<SystemManagementDTO[]> {
-    const response = await request.get('/systems/search', {
+    return await request.get('/systems/search', {
       params: { keyword }
     })
-    return response.data.data
   }
 
   /**
    * 根据ID获取系统详情
    */
   static async getSystemById(id: number): Promise<SystemManagementDTO> {
-    const response = await request.get(`/systems/${id}`)
-    return response.data.data
+    return await request.get(`/systems/${id}`)
   }
 
   /**
    * 创建新系统
    */
   static async createSystem(data: SystemCreateRequest): Promise<SystemManagementDTO> {
-    const response = await request.post('/systems', data)
-    return response.data.data
+    return await request.post('/systems', data)
   }
 
   /**
    * 更新系统信息
    */
   static async updateSystem(id: number, data: SystemUpdateRequest): Promise<SystemManagementDTO> {
-    const response = await request.put(`/systems/${id}`, data)
-    return response.data.data
+    return await request.put(`/systems/${id}`, data)
   }
 
   /**
@@ -105,24 +100,21 @@ export class SystemAPI {
    * 测试系统连接
    */
   static async testConnection(id: number): Promise<ConnectionTestResult> {
-    const response = await request.post(`/systems/${id}/test-connection`)
-    return response.data.data
+    return await request.post(`/systems/${id}/test-connection`)
   }
 
   /**
    * 刷新所有系统状态
    */
   static async refreshSystemStatus(): Promise<SystemManagementDTO[]> {
-    const response = await request.post('/systems/refresh-status')
-    return response.data.data
+    return await request.post('/systems/refresh-status')
   }
 
   /**
    * 获取系统统计信息
    */
   static async getSystemStats(): Promise<SystemStatsDTO> {
-    const response = await request.get('/systems/stats')
-    return response.data.data
+    return await request.get('/systems/stats')
   }
 }
 

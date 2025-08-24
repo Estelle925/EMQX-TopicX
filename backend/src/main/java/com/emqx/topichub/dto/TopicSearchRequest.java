@@ -20,7 +20,7 @@ public class TopicSearchRequest {
     private String keyword;
 
     /**
-     * 分组ID筛选
+     * 业务ID筛选
      */
     private Long groupId;
 

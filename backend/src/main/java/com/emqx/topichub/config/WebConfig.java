@@ -1,12 +1,24 @@
 package com.emqx.topichub.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 /**
  * Web配置类
- * 配置跨域访问等Web相关设置
+ * 配置跨域访问和静态资源等Web相关设置
  *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
@@ -26,6 +38,47 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedHeaders("*")
                 .allowCredentials(true)
                 .maxAge(3600);
+    }
+
+    /**
+     * 配置静态资源处理
+     * 提供前端静态文件服务
+     */
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // 配置静态资源映射
+        registry.addResourceHandler("/**")
+                .addResourceLocations("classpath:/static/", "file:static/")
+                .setCachePeriod(3600);
+    }
+
+    /**
+     * 配置Jackson ObjectMapper
+     * 设置全局时间格式化
+     */
+    @Bean
+    @Primary
+    public ObjectMapper objectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        JavaTimeModule javaTimeModule = new JavaTimeModule();
+        
+        // 配置LocalDateTime的序列化格式
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        javaTimeModule.addSerializer(LocalDateTime.class, new LocalDateTimeSerializer(formatter));
+        
+        mapper.registerModule(javaTimeModule);
+        return mapper;
+    }
+
+    /**
+     * 配置HTTP消息转换器
+     * 使用自定义的ObjectMapper
+     */
+    @Override
+    public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
+        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+        converter.setObjectMapper(objectMapper());
+        converters.add(0, converter);
     }
 
 }

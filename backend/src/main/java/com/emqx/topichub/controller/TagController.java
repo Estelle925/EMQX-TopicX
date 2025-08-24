@@ -1,11 +1,14 @@
 package com.emqx.topichub.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.emqx.topichub.common.Result;
 import com.emqx.topichub.dto.TagCreateRequest;
 import com.emqx.topichub.dto.TagDTO;
 import com.emqx.topichub.dto.TagUpdateRequest;
 import com.emqx.topichub.entity.Tag;
+import com.emqx.topichub.entity.TopicTag;
 import com.emqx.topichub.service.TagService;
+import com.emqx.topichub.service.TopicTagService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -27,6 +30,7 @@ import java.util.stream.Collectors;
 public class TagController {
 
     private final TagService tagService;
+    private final TopicTagService topicTagService;
 
     /**
      * 获取所有标签列表
@@ -36,10 +40,10 @@ public class TagController {
     @GetMapping
     public Result<List<TagDTO>> getAllTags() {
         List<Tag> tags = tagService.list();
-        List<TagDTO> tagDTOs = tags.stream()
+        List<TagDTO> tagDtoList = tags.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
-        return Result.success(tagDTOs);
+        return Result.success(tagDtoList);
     }
 
     /**
@@ -49,7 +53,7 @@ public class TagController {
      * @return 标签详情
      */
     @GetMapping("/{id}")
-    public Result<TagDTO> getTagById(@PathVariable Long id) {
+    public Result<TagDTO> getTagById(@PathVariable("id") Long id) {
         Tag tag = tagService.getById(id);
         if (tag == null) {
             return Result.error("标签不存在");
@@ -75,7 +79,8 @@ public class TagController {
         
         Tag tag = new Tag();
         BeanUtils.copyProperties(request, tag);
-        tag.setUsageCount(0); // 初始化使用次数为0
+        // 初始化使用次数为0
+        tag.setUsageCount(0);
         
         boolean saved = tagService.save(tag);
         if (saved) {
@@ -93,7 +98,7 @@ public class TagController {
      * @return 更新后的标签信息
      */
     @PutMapping("/{id}")
-    public Result<TagDTO> updateTag(@PathVariable Long id,
+    public Result<TagDTO> updateTag(@PathVariable("id") Long id,
                                    @Valid @RequestBody TagUpdateRequest request) {
         Tag existingTag = tagService.getById(id);
         if (existingTag == null) {
@@ -125,14 +130,20 @@ public class TagController {
      * @return 删除结果
      */
     @DeleteMapping("/{id}")
-    public Result<Void> deleteTag(@PathVariable Long id) {
+    public Result<Void> deleteTag(@PathVariable("id") Long id) {
         Tag existingTag = tagService.getById(id);
         if (existingTag == null) {
             return Result.error("标签不存在");
         }
         
-        // TODO: 检查标签是否被Topic使用，如果被使用则不允许删除
-        // 这里可以添加业务逻辑检查
+        // 检查标签是否被Topic使用，如果被使用则不允许删除
+        QueryWrapper<TopicTag> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("tag_id", id).eq("deleted", false);
+        long usageCount = topicTagService.count(queryWrapper);
+        
+        if (usageCount > 0) {
+            return Result.error("标签正在被 " + usageCount + " 个Topic使用，无法删除");
+        }
         
         boolean deleted = tagService.removeById(id);
         if (deleted) {
@@ -159,10 +170,10 @@ public class TagController {
                     .list();
         }
         
-        List<TagDTO> tagDTOs = tags.stream()
+        List<TagDTO> tagDtoList = tags.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
-        return Result.success(tagDTOs);
+        return Result.success(tagDtoList);
     }
 
     /**

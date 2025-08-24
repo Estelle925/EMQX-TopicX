@@ -13,9 +13,15 @@ import com.emqx.topichub.mapper.TagMapper;
 import com.emqx.topichub.mapper.TopicMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,6 +40,7 @@ public class DashboardService {
     private final TopicMapper topicMapper;
     private final GroupMapper groupMapper;
     private final TagMapper tagMapper;
+    private final RestTemplate restTemplate;
 
     /**
      * 获取仪表板统计数据
@@ -47,7 +54,7 @@ public class DashboardService {
         // 统计Topic数量
         Integer topicCount = Math.toIntExact(topicMapper.selectCount(new QueryWrapper<Topic>()));
 
-        // 统计分组数量
+        // 统计业务数量
         Integer groupCount = Math.toIntExact(groupMapper.selectCount(new QueryWrapper<Group>()));
 
         // 统计标签数量
@@ -89,8 +96,7 @@ public class DashboardService {
         // 检查每个系统的状态
         for (EmqxSystem system : systems) {
             try {
-                // TODO: 实际调用EMQX API检查系统状态
-                // 这里先模拟状态检查逻辑
+                // 实际调用EMQX API检查系统状态
                 boolean isOnline = checkSystemHealth(system);
 
                 system.setStatus(isOnline ? "online" : "offline");
@@ -112,15 +118,39 @@ public class DashboardService {
 
     /**
      * 检查系统健康状态
-     * TODO: 实现实际的EMQX API调用逻辑
+     * 实现实际的EMQX API调用逻辑
      *
      * @param system EMQX系统
      * @return 是否在线
      */
     private boolean checkSystemHealth(EmqxSystem system) {
-        // 这里应该实现实际的HTTP请求到EMQX API
-        // 例如调用 GET /api/v5/status 接口
-        // 暂时返回模拟结果
-        return system.getUrl() != null && !system.getUrl().isEmpty();
+        try {
+            if (system.getUrl() == null || system.getUrl().isEmpty()) {
+                return false;
+            }
+            
+            // 解密密码
+            String password = new String(Base64.getDecoder().decode(system.getPassword()));
+            
+            // 创建认证头
+            HttpHeaders headers = new HttpHeaders();
+            String auth = system.getUsername() + ":" + password;
+            String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
+            headers.set("Authorization", "Basic " + encodedAuth);
+            
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            // 调用EMQX API状态接口
+            String apiUrl = system.getUrl() + "/api/v5/status";
+            ResponseEntity<String> response = restTemplate.exchange(
+                    apiUrl, HttpMethod.GET, entity, String.class);
+            
+            // 检查响应状态码
+            return response.getStatusCode().is2xxSuccessful();
+            
+        } catch (Exception e) {
+            log.warn("检查系统 {} 健康状态失败: {}", system.getName(), e.getMessage());
+            return false;
+        }
     }
 }

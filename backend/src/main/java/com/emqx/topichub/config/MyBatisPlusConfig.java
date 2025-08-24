@@ -33,18 +33,19 @@ public class MyBatisPlusConfig {
     /**
      * 自动填充处理器
      */
-    @Component
-    public static class MyMetaObjectHandler implements MetaObjectHandler {
+    @Bean
+    public MetaObjectHandler metaObjectHandler() {
+        return new MetaObjectHandler() {
+            @Override
+            public void insertFill(MetaObject metaObject) {
+                this.strictInsertFill(metaObject, "createdAt", LocalDateTime.class, LocalDateTime.now());
+                this.strictInsertFill(metaObject, "updatedAt", LocalDateTime.class, LocalDateTime.now());
+            }
 
-        @Override
-        public void insertFill(MetaObject metaObject) {
-            this.strictInsertFill(metaObject, "createdAt", LocalDateTime.class, LocalDateTime.now());
-            this.strictInsertFill(metaObject, "updatedAt", LocalDateTime.class, LocalDateTime.now());
-        }
-
-        @Override
-        public void updateFill(MetaObject metaObject) {
-            this.strictUpdateFill(metaObject, "updatedAt", LocalDateTime.class, LocalDateTime.now());
-        }
+            @Override
+            public void updateFill(MetaObject metaObject) {
+                this.strictUpdateFill(metaObject, "updatedAt", LocalDateTime.class, LocalDateTime.now());
+            }
+        };
     }
 }

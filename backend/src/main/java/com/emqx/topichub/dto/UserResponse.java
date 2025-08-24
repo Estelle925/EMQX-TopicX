@@ -1,38 +1,42 @@
 package com.emqx.topichub.dto;
 
 import lombok.Data;
-
 import java.time.LocalDateTime;
 
 /**
- * 业务数据传输对象
- * 用于业务管理页面的数据传输
+ * 用户响应DTO
+ * 用于返回单个用户的详细信息
  *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
  */
 @Data
-public class GroupDTO {
+public class UserResponse {
 
     /**
-     * 业务ID
+     * 用户ID
      */
     private Long id;
 
     /**
-     * 业务名称
+     * 用户名
      */
-    private String name;
+    private String username;
 
     /**
-     * 业务描述
+     * 邮箱
      */
-    private String description;
+    private String email;
 
     /**
-     * Topic数量
+     * 真实姓名
      */
-    private Integer topicCount;
+    private String realName;
+
+    /**
+     * 用户状态
+     */
+    private String status;
 
     /**
      * 创建时间
@@ -43,4 +47,9 @@ public class GroupDTO {
      * 更新时间
      */
     private LocalDateTime updatedAt;
+
+    /**
+     * 最后登录时间
+     */
+    private LocalDateTime lastLoginAt;
 }

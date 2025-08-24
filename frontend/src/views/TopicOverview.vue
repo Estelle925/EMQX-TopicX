@@ -60,10 +60,10 @@
             </div>
             
             <div class="filter-item">
-              <label class="filter-label">选择分组</label>
+              <label class="filter-label">选择业务</label>
               <el-select
                 v-model="searchForm.groupId"
-                placeholder="选择分组"
+                placeholder="选择业务"
                 clearable
                 class="filter-select"
               >
@@ -136,7 +136,7 @@
           :disabled="!hasSelection"
           @click="showBatchGroupDialog = true"
         >
-          批量分配分组
+          批量分配业务
         </el-button>
         
         <el-button
@@ -193,14 +193,14 @@
           
           <el-table-column
             prop="groupName"
-            label="所属分组"
+            label="所属业务"
             width="150"
           >
             <template #default="{ row }">
               <el-tag v-if="row.groupName" type="info" size="small">
                 {{ row.groupName }}
               </el-tag>
-              <span v-else class="text-gray-400">未分组</span>
+              <span v-else class="text-gray-400">未业务</span>
             </template>
           </el-table-column>
           
@@ -225,7 +225,7 @@
                 <el-tag
                   v-for="tag in row.tags"
                   :key="tag.id"
-                  :type="getTagType(tag.type)"
+                  :color="tag.color"
                   size="small"
                   class="tag-item"
                 >
@@ -291,17 +291,17 @@
       </el-card>
     </div>
 
-    <!-- 批量分配分组对话框 -->
+    <!-- 批量分配业务对话框 -->
     <el-dialog
       v-model="showBatchGroupDialog"
-      title="批量分配分组"
+      title="批量分配业务"
       width="500px"
     >
       <el-form :model="batchGroupForm" label-width="80px">
-        <el-form-item label="选择分组">
+        <el-form-item label="选择业务">
           <el-select
             v-model="batchGroupForm.groupId"
-            placeholder="请选择分组"
+            placeholder="请选择业务"
             style="width: 100%"
           >
             <el-option
@@ -423,7 +423,7 @@ const pagination = reactive({
 const tableData = ref<Topic[]>([])
 const selectedTopics = ref<Topic[]>([])
 
-// 分组和标签数据
+// 业务和标签数据
 const groups = ref<Group[]>([])
 const tags = ref<Tag[]>([])
 
@@ -448,8 +448,8 @@ const loadGroups = async () => {
   try {
     groups.value = await GroupAPI.getAllGroups()
   } catch (error) {
-    console.error('加载分组失败:', error)
-    ElMessage.error('加载分组失败')
+    console.error('加载业务失败:', error)
+    ElMessage.error('加载业务失败')
   }
 }
 
@@ -550,20 +550,20 @@ const handleCurrentChange = (page: number) => {
 
 const handleBatchGroup = async () => {
   if (!batchGroupForm.groupId) {
-    ElMessage.warning('请选择分组')
+    ElMessage.warning('请选择业务')
     return
   }
   
   try {
     const topicIds = selectedTopics.value.map(topic => topic.id)
     await TopicAPI.batchAssignGroup(topicIds, batchGroupForm.groupId)
-    ElMessage.success(`成功为 ${selectedTopics.value.length} 个 Topic 分配分组`)
+    ElMessage.success(`成功为 ${selectedTopics.value.length} 个 Topic 分配业务`)
     showBatchGroupDialog.value = false
     batchGroupForm.groupId = undefined
     loadTableData()
   } catch (error) {
-    console.error('批量分配分组失败:', error)
-    ElMessage.error('批量分配分组失败')
+    console.error('批量分配业务失败:', error)
+    ElMessage.error('批量分配业务失败')
   }
 }
 

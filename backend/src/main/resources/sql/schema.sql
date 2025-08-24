@@ -56,14 +56,14 @@ CREATE TABLE `emqx_system`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='EMQX系统表';
 
 -- ----------------------------
--- 分组表
+-- 业务表
 -- ----------------------------
 DROP TABLE IF EXISTS `topic_group`;
 CREATE TABLE `topic_group`
 (
     `id`          bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-    `name`        varchar(100) NOT NULL COMMENT '分组名称',
-    `description` text                  DEFAULT NULL COMMENT '分组描述',
+    `name`        varchar(100) NOT NULL COMMENT '业务名称',
+    `description` text                  DEFAULT NULL COMMENT '业务描述',
     `topic_count` int(11) NOT NULL DEFAULT 0 COMMENT 'Topic数量（缓存字段）',
     `created_at`  datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at`  datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -72,7 +72,7 @@ CREATE TABLE `topic_group`
     UNIQUE KEY `uk_name` (`name`),
     KEY           `idx_topic_count` (`topic_count`),
     KEY           `idx_created_at` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Topic分组表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Topic业务表';
 
 -- ----------------------------
 -- 标签表
@@ -103,7 +103,7 @@ CREATE TABLE `topic`
     `name`          varchar(255) NOT NULL COMMENT 'Topic名称',
     `path`          varchar(500) NOT NULL COMMENT 'Topic路径',
     `system_id`     bigint(20) NOT NULL COMMENT '所属EMQX系统ID',
-    `group_id`      bigint(20) DEFAULT NULL COMMENT '所属分组ID',
+    `group_id`      bigint(20) DEFAULT NULL COMMENT '所属业务ID',
     `last_activity` datetime              DEFAULT NULL COMMENT '最后活动时间',
     `payload_doc`   text                  DEFAULT NULL COMMENT 'Payload说明文档',
     `created_at`    datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -143,25 +143,136 @@ CREATE TABLE `topic_tag`
 -- 初始化数据
 -- ----------------------------
 
--- 插入默认管理员用户
+-- 插入用户数据
 INSERT INTO `user` (`username`, `password`, `email`, `real_name`, `status`, `role`)
-VALUES ('admin', '21232f297a57a5a743894a0e4a801fc3', 'admin@emqx.io', '系统管理员', 'active', 'admin');
--- 密码为: admin (MD5加密)
+VALUES ('admin', '21232f297a57a5a743894a0e4a801fc3', 'admin@emqx.io', '系统管理员', 'active', 'admin'),
+       ('zhangsan', 'e10adc3949ba59abbe56e057f20f883e', 'zhangsan@company.com', '张三', 'active', 'user'),
+       ('lisi', 'e10adc3949ba59abbe56e057f20f883e', 'lisi@company.com', '李四', 'active', 'user'),
+       ('wangwu', 'e10adc3949ba59abbe56e057f20f883e', 'wangwu@company.com', '王五', 'inactive', 'user'),
+       ('zhaoliu', 'e10adc3949ba59abbe56e057f20f883e', 'zhaoliu@company.com', '赵六', 'active', 'user'),
+       ('developer', 'e10adc3949ba59abbe56e057f20f883e', 'dev@company.com', '开发者', 'active', 'admin');
+-- 密码为: admin (MD5加密) 或 123456 (MD5加密)
 
--- 插入默认分组
-INSERT INTO `topic_group` (`name`, `description`)
-VALUES ('默认分组', '系统默认分组'),
-       ('设备数据', '设备上报的数据Topic'),
-       ('系统消息', '系统内部消息Topic'),
-       ('用户消息', '用户相关消息Topic');
+-- 插入EMQX系统数据
+INSERT INTO `emqx_system` (`name`, `url`, `username`, `password`, `description`, `status`, `last_check`)
+VALUES ('生产环境EMQX', 'http://emqx-prod.company.com:18083', 'admin', 'public', '生产环境的EMQX集群，处理核心业务数据', 'online', NOW()),
+       ('测试环境EMQX', 'http://emqx-test.company.com:18083', 'admin', 'public', '测试环境的EMQX实例，用于功能测试', 'online', NOW()),
+       ('开发环境EMQX', 'http://localhost:18083', 'admin', 'public', '本地开发环境的EMQX实例', 'offline', DATE_SUB(NOW(), INTERVAL 2 HOUR)),
+       ('IoT设备集群', 'http://iot-emqx.company.com:18083', 'iot_admin', 'iot_pass', '专门处理IoT设备连接的EMQX集群', 'online', NOW()),
+       ('边缘计算节点', 'http://edge-emqx.company.com:18083', 'edge_admin', 'edge_pass', '边缘计算环境的EMQX节点', 'offline', DATE_SUB(NOW(), INTERVAL 1 DAY));
 
--- 插入默认标签
-INSERT INTO `tag` (`name`, `color`)
-VALUES ('重要', '#ff4d4f'),
-       ('数据', '#1890ff'),
-       ('告警', '#faad14'),
-       ('系统', '#52c41a'),
-       ('用户', '#722ed1');
+-- 插入Topic业务数据
+INSERT INTO `topic_group` (`name`, `description`, `topic_count`)
+VALUES ('默认业务', '系统默认业务', 0),
+       ('设备数据', '设备上报的数据Topic', 15),
+       ('系统消息', '系统内部消息Topic', 8),
+       ('用户消息', '用户相关消息Topic', 5),
+       ('传感器数据', '各类传感器上报的实时数据', 12),
+       ('设备控制', '设备控制指令相关Topic', 6),
+       ('告警通知', '系统告警和通知消息', 4),
+       ('日志数据', '系统和设备日志数据', 7),
+       ('统计分析', '数据统计和分析结果', 3),
+       ('第三方集成', '与第三方系统集成的消息', 2);
+
+-- 插入标签数据
+INSERT INTO `tag` (`name`, `color`, `usage_count`)
+VALUES ('重要', '#ff4d4f', 25),
+       ('数据', '#1890ff', 35),
+       ('告警', '#faad14', 15),
+       ('系统', '#52c41a', 20),
+       ('用户', '#722ed1', 12),
+       ('实时', '#13c2c2', 28),
+       ('温度', '#eb2f96', 18),
+       ('湿度', '#2f54eb', 16),
+       ('压力', '#f5222d', 14),
+       ('位置', '#fa8c16', 22),
+       ('状态', '#a0d911', 30),
+       ('控制', '#fadb14', 19),
+       ('监控', '#52c41a', 24),
+       ('日志', '#722ed1', 13),
+       ('错误', '#ff7875', 8);
+
+-- 插入Topic数据
+INSERT INTO `topic` (`name`, `path`, `system_id`, `group_id`, `last_activity`, `payload_doc`)
+VALUES 
+-- 生产环境Topics
+('设备温度数据', 'device/+/temperature', 1, 2, NOW(), '{"temperature": 25.5, "unit": "celsius", "timestamp": 1640995200}'),
+('设备湿度数据', 'device/+/humidity', 1, 2, DATE_SUB(NOW(), INTERVAL 5 MINUTE), '{"humidity": 65.2, "unit": "percent", "timestamp": 1640995200}'),
+('设备状态上报', 'device/+/status', 1, 2, DATE_SUB(NOW(), INTERVAL 2 MINUTE), '{"status": "online", "battery": 85, "signal": -45}'),
+('系统心跳', 'system/heartbeat', 1, 3, NOW(), '{"node_id": "emqx@127.0.0.1", "uptime": 86400, "memory_usage": 45.2}'),
+('用户登录事件', 'user/+/login', 1, 4, DATE_SUB(NOW(), INTERVAL 10 MINUTE), '{"user_id": 123, "login_time": 1640995200, "ip": "192.168.1.100"}'),
+('传感器压力数据', 'sensor/pressure/+', 1, 5, DATE_SUB(NOW(), INTERVAL 3 MINUTE), '{"pressure": 1013.25, "unit": "hPa", "location": "room_01"}'),
+('设备控制指令', 'control/device/+/command', 1, 6, DATE_SUB(NOW(), INTERVAL 15 MINUTE), '{"command": "turn_on", "device_id": "dev_001", "params": {}}'),
+('系统告警', 'alert/system/+', 1, 7, DATE_SUB(NOW(), INTERVAL 1 HOUR), '{"level": "warning", "message": "High CPU usage", "timestamp": 1640995200}'),
+
+-- 测试环境Topics
+('测试设备数据', 'test/device/+/data', 2, 2, DATE_SUB(NOW(), INTERVAL 30 MINUTE), '{"test_data": "sample", "device_id": "test_001"}'),
+('测试用户消息', 'test/user/+/message', 2, 4, DATE_SUB(NOW(), INTERVAL 45 MINUTE), '{"message": "test message", "user_id": "test_user"}'),
+('测试系统日志', 'test/system/log', 2, 8, DATE_SUB(NOW(), INTERVAL 20 MINUTE), '{"level": "info", "message": "Test log entry"}'),
+
+-- IoT设备集群Topics
+('IoT设备位置', 'iot/device/+/location', 4, 5, DATE_SUB(NOW(), INTERVAL 8 MINUTE), '{"latitude": 39.9042, "longitude": 116.4074, "accuracy": 5}'),
+('IoT设备电量', 'iot/device/+/battery', 4, 2, DATE_SUB(NOW(), INTERVAL 12 MINUTE), '{"battery_level": 78, "charging": false, "voltage": 3.7}'),
+('IoT环境监测', 'iot/environment/+', 4, 5, DATE_SUB(NOW(), INTERVAL 6 MINUTE), '{"temperature": 22.3, "humidity": 58.7, "air_quality": 85}'),
+('IoT设备告警', 'iot/alert/+', 4, 7, DATE_SUB(NOW(), INTERVAL 25 MINUTE), '{"alert_type": "low_battery", "device_id": "iot_001", "threshold": 20}'),
+
+-- 开发环境Topics
+('开发调试数据', 'dev/debug/+', 3, 8, DATE_SUB(NOW(), INTERVAL 2 HOUR), '{"debug_info": "sample debug data", "module": "auth"}'),
+('开发测试消息', 'dev/test/message', 3, 3, DATE_SUB(NOW(), INTERVAL 3 HOUR), '{"test_case": "login_test", "result": "passed"}'),
+
+-- 统计分析Topics
+('数据统计结果', 'analytics/stats/+', 1, 9, DATE_SUB(NOW(), INTERVAL 1 HOUR), '{"metric": "device_count", "value": 1250, "period": "hourly"}'),
+('用户行为分析', 'analytics/user_behavior', 1, 9, DATE_SUB(NOW(), INTERVAL 2 HOUR), '{"action": "page_view", "count": 156, "page": "/dashboard"}'),
+
+-- 第三方集成Topics
+('第三方API数据', 'integration/api/+', 1, 10, DATE_SUB(NOW(), INTERVAL 4 HOUR), '{"api_name": "weather_api", "data": {"city": "Beijing", "temp": 15}}'),
+('外部系统通知', 'integration/notification', 1, 10, DATE_SUB(NOW(), INTERVAL 6 HOUR), '{"source": "external_system", "type": "update", "content": "Data sync completed"}');
+
+-- 插入Topic标签关联数据
+INSERT INTO `topic_tag` (`topic_id`, `tag_id`)
+VALUES 
+-- 设备温度数据的标签
+(1, 1), (1, 2), (1, 6), (1, 7),
+-- 设备湿度数据的标签
+(2, 2), (2, 6), (2, 8),
+-- 设备状态上报的标签
+(3, 1), (3, 2), (3, 11),
+-- 系统心跳的标签
+(4, 4), (4, 13),
+-- 用户登录事件的标签
+(5, 5), (5, 14),
+-- 传感器压力数据的标签
+(6, 2), (6, 6), (6, 9),
+-- 设备控制指令的标签
+(7, 1), (7, 12),
+-- 系统告警的标签
+(8, 1), (8, 3), (8, 15),
+-- 测试设备数据的标签
+(9, 2), (9, 4),
+-- 测试用户消息的标签
+(10, 5), (10, 4),
+-- 测试系统日志的标签
+(11, 4), (11, 14),
+-- IoT设备位置的标签
+(12, 2), (12, 10),
+-- IoT设备电量的标签
+(13, 2), (13, 11),
+-- IoT环境监测的标签
+(14, 1), (14, 2), (14, 6), (14, 13),
+-- IoT设备告警的标签
+(15, 1), (15, 3),
+-- 开发调试数据的标签
+(16, 4), (16, 14),
+-- 开发测试消息的标签
+(17, 4),
+-- 数据统计结果的标签
+(18, 2), (18, 13),
+-- 用户行为分析的标签
+(19, 5), (19, 2),
+-- 第三方API数据的标签
+(20, 2), (20, 4),
+-- 外部系统通知的标签
+(21, 4), (21, 13);
 
 SET
 FOREIGN_KEY_CHECKS = 1;

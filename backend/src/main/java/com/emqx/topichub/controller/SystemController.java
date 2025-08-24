@@ -53,7 +53,7 @@ public class SystemController {
      * @return 系统详情
      */
     @GetMapping("/{id}")
-    public Result<SystemManagementDTO> getSystemById(@PathVariable Long id) {
+    public Result<SystemManagementDTO> getSystemById(@PathVariable("id") Long id) {
         List<SystemManagementDTO> systems = emqxSystemService.getAllSystems();
         SystemManagementDTO system = systems.stream()
                 .filter(s -> s.getId().equals(id))
@@ -91,7 +91,7 @@ public class SystemController {
      * @return 更新后的系统信息
      */
     @PutMapping("/{id}")
-    public Result<SystemManagementDTO> updateSystem(@PathVariable Long id,
+    public Result<SystemManagementDTO> updateSystem(@PathVariable("id") Long id,
                                                     @Valid @RequestBody SystemUpdateRequest request) {
         try {
             SystemManagementDTO system = emqxSystemService.updateSystem(id, request);
@@ -108,7 +108,7 @@ public class SystemController {
      * @return 操作结果
      */
     @DeleteMapping("/{id}")
-    public Result<Void> deleteSystem(@PathVariable Long id) {
+    public Result<Void> deleteSystem(@PathVariable("id") Long id) {
         try {
             emqxSystemService.deleteSystem(id);
             return Result.success();
@@ -124,7 +124,7 @@ public class SystemController {
      * @return 连接测试结果
      */
     @PostMapping("/{id}/test-connection")
-    public Result<ConnectionTestResult> testConnection(@PathVariable Long id) {
+    public Result<ConnectionTestResult> testConnection(@PathVariable("id") Long id) {
         try {
             ConnectionTestResult result = emqxSystemService.testConnectionDetailed(id);
             String message = result.getSuccess() ? "连接测试成功" : "连接测试失败";

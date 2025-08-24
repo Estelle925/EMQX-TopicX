@@ -7,8 +7,8 @@ import lombok.EqualsAndHashCode;
 import java.time.LocalDateTime;
 
 /**
- * 分组实体类
- * 用于Topic分组管理
+ * 业务实体类
+ * 用于Topic业务管理
  *
  * @author EMQX Topic Hub Team
  * @since 1.0.0
@@ -25,13 +25,13 @@ public class Group {
     private Long id;
 
     /**
-     * 分组名称
+     * 业务名称
      */
     @TableField("name")
     private String name;
 
     /**
-     * 分组描述
+     * 业务描述
      */
     @TableField("description")
     private String description;

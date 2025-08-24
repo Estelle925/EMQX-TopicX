@@ -31,7 +31,7 @@ public class TopicUpdateRequest {
     private String path;
 
     /**
-     * 所属分组ID（可选）
+     * 所属业务ID（可选）
      */
     private Long groupId;
 

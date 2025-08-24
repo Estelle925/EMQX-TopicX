@@ -27,7 +27,7 @@ public class DashboardStatsDTO {
     private Integer topicCount;
 
     /**
-     * 分组数量
+     * 业务数量
      */
     private Integer groupCount;
 

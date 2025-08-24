@@ -43,9 +43,9 @@ public class TopicController {
      * @return Topic详情
      */
     @GetMapping("/{id}")
-    public Result<TopicDTO> getTopicById(@PathVariable Long id) {
+    public Result<TopicDTO> getTopicById(@PathVariable("id") Long id) {
         try {
-            TopicDTO result = topicService.getTopicDTOById(id);
+            TopicDTO result = topicService.getTopicDtoById(id);
             return Result.success(result);
         } catch (RuntimeException e) {
             return Result.error(e.getMessage());
@@ -76,7 +76,7 @@ public class TopicController {
      * @return 更新后的Topic
      */
     @PutMapping("/{id}")
-    public Result<TopicDTO> updateTopic(@PathVariable Long id,
+    public Result<TopicDTO> updateTopic(@PathVariable("id") Long id,
                                         @Valid @RequestBody TopicUpdateRequest request) {
         try {
             TopicDTO result = topicService.updateTopic(id, request);
@@ -93,7 +93,7 @@ public class TopicController {
      * @return 删除结果
      */
     @DeleteMapping("/{id}")
-    public Result<Void> deleteTopic(@PathVariable Long id) {
+    public Result<Void> deleteTopic(@PathVariable("id") Long id) {
         try {
             topicService.deleteTopic(id);
             return Result.success();
@@ -125,7 +125,7 @@ public class TopicController {
      * @return 标签列表
      */
     @GetMapping("/{id}/tags")
-    public Result<List<TagDTO>> getTopicTags(@PathVariable Long id) {
+    public Result<List<TagDTO>> getTopicTags(@PathVariable("id") Long id) {
         try {
             List<TagDTO> result = topicService.getTopicTags(id);
             return Result.success(result);
@@ -142,7 +142,7 @@ public class TopicController {
      * @return 操作结果
      */
     @PostMapping("/{id}/tags")
-    public Result<Void> addTopicTags(@PathVariable Long id, @RequestBody List<Long> tagIds) {
+    public Result<Void> addTopicTags(@PathVariable("id") Long id, @RequestBody List<Long> tagIds) {
         try {
             topicService.addTopicTags(id, tagIds);
             return Result.success();
@@ -159,10 +159,37 @@ public class TopicController {
      * @return 操作结果
      */
     @DeleteMapping("/{id}/tags")
-    public Result<Void> removeTopicTags(@PathVariable Long id, @RequestBody List<Long> tagIds) {
+    public Result<Void> removeTopicTags(@PathVariable("id") Long id, @RequestBody List<Long> tagIds) {
         try {
             topicService.removeTopicTags(id, tagIds);
             return Result.success();
+        } catch (RuntimeException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取Topic的公开文档（无需登录）
+     *
+     * @param id Topic ID
+     * @return Topic公开文档信息
+     */
+    @GetMapping("/{id}/public-doc")
+    public Result<TopicDTO> getTopicPublicDoc(@PathVariable("id") Long id) {
+        try {
+            TopicDTO result = topicService.getTopicDtoById(id);
+            // 只返回必要的公开信息
+            TopicDTO publicDoc = new TopicDTO();
+            publicDoc.setId(result.getId());
+            publicDoc.setName(result.getName());
+            publicDoc.setPath(result.getPath());
+            publicDoc.setPayloadDoc(result.getPayloadDoc());
+            publicDoc.setUpdatedAt(result.getUpdatedAt());
+            publicDoc.setCreatedAt(result.getCreatedAt());
+            publicDoc.setGroupName(result.getGroupName());
+            publicDoc.setTags(result.getTags());
+            publicDoc.setLastActivity(result.getLastActivity());
+            return Result.success(publicDoc);
         } catch (RuntimeException e) {
             return Result.error(e.getMessage());
         }

@@ -57,12 +57,12 @@
             <div class="info-value topic-path">{{ topicInfo.path }}</div>
           </div>
           <div class="info-item">
-            <label>所属分组</label>
+            <label>所属业务</label>
             <div class="info-value">
               <el-tag v-if="topicInfo.groupName" type="info" size="small">
                 {{ topicInfo.groupName }}
               </el-tag>
-              <span v-else class="no-group">未分组</span>
+              <span v-else class="no-group">未业务</span>
             </div>
           </div>
           <div class="info-item">
@@ -141,15 +141,24 @@
             <span class="table-title">Payload说明文档</span>
           </div>
           <div class="header-actions">
-            <el-button 
-              v-if="!isEditingDoc" 
-              type="primary" 
-              size="small" 
-              :icon="Edit"
-              @click="startEditDoc"
-            >
-              编辑文档
-            </el-button>
+            <div v-if="!isEditingDoc" class="doc-actions">
+              <el-button 
+                type="primary" 
+                size="small" 
+                :icon="Edit"
+                @click="startEditDoc"
+              >
+                编辑文档
+              </el-button>
+              <el-button 
+                size="small" 
+                :icon="Share"
+                @click="shareDoc"
+                v-if="payloadDoc.trim()"
+              >
+                分享文档
+              </el-button>
+            </div>
             <div v-else class="edit-actions">
               <el-button 
                 size="small" 
@@ -255,7 +264,8 @@ import {
   Plus,
   Delete,
   Document,
-  Check
+  Check,
+  Share
 } from '@element-plus/icons-vue'
 import { TopicAPI, type TopicDTO, type TopicUpdateRequest } from '../api/topic'
 import { TagAPI, type TagDTO } from '../api/tag'
@@ -501,6 +511,26 @@ const handleCloseAddTagDialog = () => {
 }
 
 
+
+const shareDoc = () => {
+  const topicId = topicInfo.id
+  const shareUrl = `${window.location.origin}/public/topic/${topicId}/doc`
+  
+  // 复制链接到剪贴板
+  navigator.clipboard.writeText(shareUrl).then(() => {
+    ElMessage.success('分享链接已复制到剪贴板')
+  }).catch(() => {
+    // 降级方案：显示链接让用户手动复制
+    ElMessageBox.alert(
+      `分享链接：${shareUrl}`,
+      '分享文档',
+      {
+        confirmButtonText: '确定',
+        type: 'info'
+      }
+    )
+  })
+}
 
 const formatTime = (time: string): string => {
   return new Date(time).toLocaleString('zh-CN')
@@ -797,6 +827,11 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.doc-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .edit-actions {

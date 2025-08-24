@@ -40,7 +40,7 @@ request.interceptors.response.use(
     
     // 请求成功
     if (code === 200) {
-      return response
+      return data || response.data
     }
     
     // 业务错误

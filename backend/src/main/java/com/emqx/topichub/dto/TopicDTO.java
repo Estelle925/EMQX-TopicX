@@ -1,5 +1,6 @@
 package com.emqx.topichub.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -36,12 +37,12 @@ public class TopicDTO {
     private Long systemId;
 
     /**
-     * 所属分组ID
+     * 所属业务ID
      */
     private Long groupId;
 
     /**
-     * 所属分组名称
+     * 所属业务名称
      */
     private String groupName;
 
@@ -68,10 +69,12 @@ public class TopicDTO {
     /**
      * 创建时间
      */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
 
     /**
      * 更新时间
      */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updatedAt;
 }

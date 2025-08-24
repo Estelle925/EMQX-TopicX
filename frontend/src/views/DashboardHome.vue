@@ -56,7 +56,7 @@
                 <el-icon><FolderAdd /></el-icon>
               </div>
               <div class="action-content">
-                <div class="action-title">创建Topic分组</div>
+                <div class="action-title">创建Topic业务</div>
                 <div class="action-desc">组织管理Topic结构</div>
               </div>
               <div class="action-arrow">
@@ -98,10 +98,10 @@
               </div>
               <div class="status-info">
                 <div class="system-name">{{ system.name }}</div>
-                <div class="system-url">{{ system.url }}</div>
-                <div class="system-metrics">
-                  <span class="metric">主题数量: {{ system.topicCount || 0 }}</span>
-                </div>
+                <a :href="system.url" target="_blank" class="system-url">{{ system.url }}</a>
+              </div>
+              <div class="status-metrics">
+                <span class="metric">主题数量: {{ system.topicCount || 0 }}</span>
               </div>
               <div class="status-indicator">
                 <div class="status-dot" :class="system.status"></div>
@@ -215,8 +215,8 @@ const statsItems = computed<StatItem[]>(() => [
   },
   {
     key: 'groupCount',
-    label: '分组数量',
-    description: 'Topic分组管理数量',
+    label: '业务数量',
+    description: 'Topic业务管理数量',
     icon: Folder,
     iconClass: 'group',
     value: stats.value.groupCount,
@@ -672,11 +672,22 @@ onMounted(() => {
   font-size: 12px;
   color: var(--text-secondary);
   margin-bottom: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.3s ease;
 }
 
-.system-metrics {
+.system-url:hover {
+  color: #22c55e;
+  text-decoration: underline;
+}
+
+.status-metrics {
   display: flex;
-  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  margin: 0 16px;
 }
 
 .metric {
@@ -691,6 +702,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-right: 16px;
 }
 
 .status-dot {

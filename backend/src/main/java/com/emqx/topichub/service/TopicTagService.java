@@ -5,6 +5,9 @@ import com.emqx.topichub.entity.TopicTag;
 import com.emqx.topichub.mapper.TopicTagMapper;
 import org.springframework.stereotype.Service;
 
+/**
+ * @author EMQX Topic Hub Team
+ */
 @Service
 public class TopicTagService extends ServiceImpl<TopicTagMapper, TopicTag> {
 

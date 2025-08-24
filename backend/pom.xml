@@ -23,7 +23,7 @@
         <maven.compiler.source>17</maven.compiler.source>
         <mybatis.plus.version>3.5.5</mybatis.plus.version>
         <sa-token-rdis.version>1.39.0</sa-token-rdis.version>
-        <sa-token-boot.version>1.37.0</sa-token-boot.version>
+        <sa-token-boot.version>1.39.0</sa-token-boot.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -64,7 +64,7 @@
         <!-- MyBatis Plus -->
         <dependency>
             <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-boot-starter</artifactId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
             <version>${mybatis.plus.version}</version>
         </dependency>
 
@@ -93,7 +93,7 @@
         <!-- Sa-Token 权限认证 -->
         <dependency>
             <groupId>cn.dev33</groupId>
-            <artifactId>sa-token-spring-boot-starter</artifactId>
+            <artifactId>sa-token-spring-boot3-starter</artifactId>
             <version>${sa-token-boot.version}</version>
         </dependency>
         <!-- Sa-Token 整合 Redis （使用 jackson 序列化方式） -->
@@ -107,6 +107,13 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+        
+        <!-- Netty DNS resolver for macOS -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-resolver-dns-native-macos</artifactId>
+            <classifier>osx-aarch_64</classifier>
         </dependency>
 
         <!-- Test Dependencies -->

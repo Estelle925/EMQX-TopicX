@@ -2,8 +2,8 @@
   <div class="group-management">
     <div class="page-header">
       <div class="header-left">
-        <h2>分组管理</h2>
-        <p class="page-description">管理Topic分组和标签，优化数据组织结构</p>
+        <h2>业务管理</h2>
+        <p class="page-description">管理Topic业务和标签，优化数据组织结构</p>
       </div>
       <div class="header-actions">
         <el-button @click="refreshData" :loading="loading">
@@ -12,7 +12,7 @@
         </el-button>
         <el-button type="primary" @click="showAddDialog = true">
           <el-icon><Plus /></el-icon>
-          创建分组
+          创建业务
         </el-button>
       </div>
     </div>
@@ -21,7 +21,7 @@
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-header">
-          <span class="stat-title">总分组数</span>
+          <span class="stat-title">总业务数</span>
           <div class="stat-icon groups">
             <el-icon><FolderOpened /></el-icon>
           </div>
@@ -41,7 +41,7 @@
       
       <div class="stat-card">
         <div class="stat-header">
-          <span class="stat-title">已分组Topic</span>
+          <span class="stat-title">已业务Topic</span>
           <div class="stat-icon topics">
             <el-icon><Document /></el-icon>
           </div>
@@ -60,20 +60,20 @@
       </div>
     </div>
     
-    <!-- 分组列表 -->
+    <!-- 业务列表 -->
     <el-row :gutter="24">
       <el-col :span="16">
         <el-card class="groups-card" shadow="never">
           <template #header>
             <div class="card-header">
               <div class="header-left">
-                <span class="table-title">分组列表</span>
-                <el-tag size="small" type="info">{{ groups.length }} 个分组</el-tag>
+                <span class="table-title">业务列表</span>
+                <el-tag size="small" type="info">{{ groups.length }} 个业务</el-tag>
               </div>
               <div class="header-actions">
                 <el-input
                   v-model="groupSearchKeyword"
-                  placeholder="搜索分组..."
+                  placeholder="搜索业务..."
                   size="small"
                   style="width: 200px;"
                   clearable
@@ -92,12 +92,14 @@
             stripe
             :header-cell-style="{ background: '#f9fafb', color: '#374151' }"
           >
-            <el-table-column label="分组信息" min-width="200">
+            <el-table-column label="业务名称" min-width="150">
               <template #default="{ row }">
-                <div class="group-info">
-                  <div class="group-name">{{ row.name }}</div>
-                  <div class="group-description" v-if="row.description">{{ row.description }}</div>
-                </div>
+                <div class="group-name">{{ row.name }}</div>
+              </template>
+            </el-table-column>
+            <el-table-column label="业务描述" min-width="200">
+              <template #default="{ row }">
+                <div class="group-description">{{ row.description || '-' }}</div>
               </template>
             </el-table-column>
             <el-table-column label="Topic数量" min-width="120" align="center" sortable prop="topicCount">
@@ -160,44 +162,55 @@
             </el-input>
           </div>
           
-          <div class="tag-list">
-            <div
-              v-for="tag in filteredTags"
-              :key="tag.id"
-              class="tag-item"
-            >
-              <div class="tag-display-wrapper">
-                <el-tag
-                  :color="tag.color"
-                  size="large"
-                  class="tag-display"
-                >
-                  {{ tag.name }}
-                </el-tag>
-                <div class="tag-usage">使用次数: {{ getTagUsageCount(tag.id) }}</div>
-              </div>
-              <div class="tag-actions">
-                <el-button size="small" type="primary" @click="editTag(tag)">
-                  <el-icon><Edit /></el-icon>
-                </el-button>
-                <el-button size="small" type="danger" @click="deleteTag(tag)">
-                  <el-icon><Delete /></el-icon>
-                </el-button>
-              </div>
-            </div>
-            
-            <div v-if="filteredTags.length === 0" class="empty-tags">
+          <el-table
+            :data="filteredTags"
+            class="tag-table"
+            :show-header="true"
+            :border="false"
+            style="width: 100%"
+          >
+            <el-table-column label="标签" min-width="120" align="center" header-align="center">
+              <template #default="{ row }">
+                <div class="tag-display-wrapper">
+                  <el-tag
+                    :color="row.color"
+                    class="tag-display"
+                    effect="light"
+                  >
+                    {{ row.name }}
+                  </el-tag>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="使用次数" min-width="100" align="center" header-align="center">
+              <template #default="{ row }">
+                <span class="tag-usage">{{ row.usageCount || 0 }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" min-width="140" align="center" header-align="center">
+              <template #default="{ row }">
+                <div class="tag-actions">
+                  <el-button size="small" type="primary" @click="editTag(row)">
+                    <el-icon><Edit /></el-icon>
+                  </el-button>
+                  <el-button size="small" type="danger" @click="deleteTag(row)">
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
+                </div>
+              </template>
+            </el-table-column>
+            <template #empty>
               <el-empty description="暂无标签" />
-            </div>
-          </div>
+            </template>
+          </el-table>
         </el-card>
       </el-col>
     </el-row>
     
-    <!-- 添加/编辑分组对话框 -->
+    <!-- 添加/编辑业务对话框 -->
     <el-dialog
       v-model="showAddDialog"
-      :title="editingGroup ? '编辑分组' : '创建分组'"
+      :title="editingGroup ? '编辑业务' : '创建业务'"
       width="400px"
     >
       <el-form
@@ -206,15 +219,15 @@
         :rules="groupRules"
         label-width="80px"
       >
-        <el-form-item label="分组名称" prop="name">
-          <el-input v-model="groupForm.name" placeholder="请输入分组名称" />
+        <el-form-item label="业务名称" prop="name">
+          <el-input v-model="groupForm.name" placeholder="请输入业务名称" />
         </el-form-item>
         
         <el-form-item label="描述">
           <el-input
             v-model="groupForm.description"
             type="textarea"
-            placeholder="请输入分组描述"
+            placeholder="请输入业务描述"
             :rows="3"
           />
         </el-form-item>
@@ -319,13 +332,13 @@ const groupForm = reactive({
 
 const tagForm = reactive({
   name: '',
-  color: '#409EFF'
+  color: '#60a5fa'
 })
 
 const colorPresets = [
-  '#409EFF', '#67C23A', '#E6A23C', '#F56C6C',
-  '#909399', '#C71585', '#FF6347', '#32CD32',
-  '#1E90FF', '#FF69B4', '#8A2BE2', '#00CED1'
+  '#60a5fa', '#34d399', '#fbbf24', '#f87171',
+  '#9ca3af', '#a78bfa', '#fb7185', '#4ade80',
+  '#3b82f6', '#ec4899', '#8b5cf6', '#06b6d4'
 ]
 
 // 计算属性
@@ -355,7 +368,7 @@ const filteredTags = computed(() => {
 
 const groupRules: FormRules = {
   name: [
-    { required: true, message: '请输入分组名称', trigger: 'blur' }
+    { required: true, message: '请输入业务名称', trigger: 'blur' }
   ]
 }
 
@@ -373,8 +386,8 @@ const loadGroups = async () => {
   try {
     groups.value = await GroupAPI.getAllGroups()
   } catch (error) {
-    console.error('加载分组列表失败:', error)
-    ElMessage.error('加载分组列表失败')
+    console.error('加载业务列表失败:', error)
+    ElMessage.error('加载业务列表失败')
   } finally {
     loading.value = false
   }
@@ -401,7 +414,7 @@ const editGroup = (group: Group) => {
 const deleteGroup = async (group: Group) => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除分组 "${group.name}" 吗？删除后该分组下的Topic将变为未分组状态。`,
+      `确定要删除业务 "${group.name}" 吗？删除后该业务下的Topic将变为未业务状态。`,
       '确认删除',
       {
         confirmButtonText: '确定',
@@ -417,7 +430,7 @@ const deleteGroup = async (group: Group) => {
     }
   } catch (error: any) {
     if (error !== 'cancel') {
-      console.error('删除分组失败:', error)
+      console.error('删除业务失败:', error)
       ElMessage.error('删除失败')
     }
   }
@@ -465,7 +478,7 @@ const saveGroup = async () => {
     saving.value = true
     
     if (editingGroup.value && editingGroup.value.id) {
-      // 更新分组
+      // 更新业务
       const updateRequest: GroupUpdateRequest = {
         name: groupForm.name,
         description: groupForm.description
@@ -473,7 +486,7 @@ const saveGroup = async () => {
       await GroupAPI.updateGroup(editingGroup.value.id, updateRequest)
       ElMessage.success('更新成功')
     } else {
-      // 创建分组
+      // 创建业务
       const createRequest: GroupCreateRequest = {
         name: groupForm.name,
         description: groupForm.description
@@ -486,7 +499,7 @@ const saveGroup = async () => {
     resetGroupForm()
     loadGroups()
   } catch (error) {
-    console.error('保存分组失败:', error)
+    console.error('保存业务失败:', error)
     ElMessage.error('保存失败')
   } finally {
     saving.value = false
@@ -788,7 +801,7 @@ onMounted(() => {
   font-weight: 500;
 }
 
-/* 分组信息样式 */
+/* 业务信息样式 */
 .group-info {
   display: flex;
   flex-direction: column;
@@ -823,41 +836,75 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
-.tag-list {
+.tag-table {
   max-height: 500px;
   overflow-y: auto;
-  padding: 0 20px 20px;
-}
-
-.tag-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 0;
-}
-
-.tag-item:last-child {
 }
 
 .tag-display-wrapper {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 0;
 }
 
 .tag-display {
-  align-self: flex-start;
+  font-size: 14px;
 }
 
 .tag-usage {
-  font-size: 11px;
+  font-size: 14px;
   color: #9ca3af;
+  font-weight: 500;
 }
 
 .tag-actions {
   display: flex;
+  justify-content: center;
+  align-items: center;
   gap: 6px;
+}
+
+/* 隐藏表格边框 */
+:deep(.tag-table .el-table__inner-wrapper) {
+  border: none;
+}
+
+:deep(.tag-table .el-table__border-left-patch) {
+  display: none;
+}
+
+:deep(.tag-table .el-table__border-bottom-patch) {
+  display: none;
+}
+
+:deep(.tag-table .el-table__cell) {
+  border: none;
+  padding: 12px 16px;
+}
+
+:deep(.tag-table .el-table__header-wrapper) {
+  border-bottom: 1px solid #ebeef5;
+}
+
+:deep(.tag-table .el-table__header th) {
+  background-color: #fafafa;
+  font-weight: 600;
+  color: #606266;
+  text-align: center;
+}
+
+:deep(.tag-table .el-table__body td) {
+  text-align: center;
+  vertical-align: middle;
+}
+
+:deep(.tag-table .el-table__row) {
+  border: none;
+}
+
+:deep(.tag-table .el-table__body tr:hover > td) {
+  background-color: #f9fafb;
 }
 
 .empty-tags {
@@ -1039,7 +1086,7 @@ onMounted(() => {
 }
 
 :deep(.el-card) {
-  /* 保持默认边框样式，让分组列表和标签管理卡片显示边框 */
+  /* 保持默认边框样式，让业务列表和标签管理卡片显示边框 */
 }
 
 :deep(.el-dialog__header) {

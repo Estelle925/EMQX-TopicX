@@ -21,7 +21,7 @@ const router = createRouter({
       name: 'Dashboard',
       component: () => import('../pages/DashboardPage.vue'),
       meta: {
-        requiresAuth: false
+        requiresAuth: true
       },
       children: [
         {
@@ -53,9 +53,20 @@ const router = createRouter({
       ]
     },
     {
+      path: '/public/topic/:id/doc',
+      name: 'PublicTopicDoc',
+      component: () => import('../pages/PublicTopicDoc.vue'),
+      meta: {
+        requiresAuth: false
+      }
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'NotFound',
-      redirect: '/dashboard'
+      component: () => import('../pages/NotFoundPage.vue'),
+      meta: {
+        requiresAuth: false
+      }
     }
   ]
 })
@@ -67,8 +78,8 @@ router.beforeEach((to, from, next) => {
   // 初始化认证状态
   authStore.initAuth()
   
-  // 检查路由是否需要认证
-  const requiresAuth = to.matched.some(record => record.meta.requiresAuth !== false)
+  // 检查路由是否需要认证（默认需要认证，除非明确设置为false）
+  const requiresAuth = to.matched.every(record => record.meta.requiresAuth !== false)
   
   if (requiresAuth && !authStore.isLoggedIn) {
     // 需要认证但未登录，重定向到登录页

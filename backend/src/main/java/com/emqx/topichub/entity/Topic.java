@@ -43,7 +43,7 @@ public class Topic {
     private Long systemId;
 
     /**
-     * 所属分组ID
+     * 所属业务ID
      */
     @TableField("group_id")
     private Long groupId;

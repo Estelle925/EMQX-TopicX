@@ -4,9 +4,9 @@ import axios from 'axios'
 import { AuthAPI, type LoginRequest, type LoginResponse } from '../api/auth'
 
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref<string>('mock-token')
-  const username = ref<string>('admin')
-  const isLoggedIn = ref<boolean>(true)
+  const token = ref<string>('')
+  const username = ref<string>('')
+  const isLoggedIn = ref<boolean>(false)
 
   // 从localStorage恢复登录状态
   const initAuth = () => {

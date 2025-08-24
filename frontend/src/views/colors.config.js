@@ -51,7 +51,7 @@ export const cardIconColors = {
     shadow: '0 4px 12px rgba(52, 211, 153, 0.3)'
   },
   
-  // 分组相关图标
+  // 业务相关图标
   group: {
     background: greenColorScheme.darkGreen.gradient,
     color: '#ffffff',

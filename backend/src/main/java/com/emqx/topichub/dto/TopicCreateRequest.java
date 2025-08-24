@@ -38,7 +38,7 @@ public class TopicCreateRequest {
     private Long systemId;
 
     /**
-     * 所属分组ID（可选）
+     * 所属业务ID（可选）
      */
     private Long groupId;
 

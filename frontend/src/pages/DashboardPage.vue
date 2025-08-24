@@ -34,7 +34,7 @@
           
           <el-menu-item index="/groups">
             <el-icon><Folder /></el-icon>
-            <span>分组管理</span>
+            <span>业务管理</span>
           </el-menu-item>
         </el-menu>
         
@@ -75,6 +75,10 @@
               </span>
               <template #dropdown>
                 <el-dropdown-menu>
+                  <el-dropdown-item command="userManagement">
+                    <el-icon><User /></el-icon>
+                    用户管理
+                  </el-dropdown-item>
                   <el-dropdown-item command="logout">
                     <el-icon><SwitchButton /></el-icon>
                     退出登录
@@ -91,6 +95,9 @@
         </el-main>
       </el-container>
     </el-container>
+    
+    <!-- 用户管理弹窗 -->
+    <UserManagement v-model="showUserManagement" />
   </div>
 </template>
 
@@ -110,6 +117,7 @@ import {
   SwitchButton
 } from '@element-plus/icons-vue'
 import { useAuthStore } from '../stores/auth'
+import UserManagement from '../components/UserManagement.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -117,6 +125,9 @@ const authStore = useAuthStore()
 
 // 侧边栏折叠状态
 const isCollapsed = ref(false)
+
+// 用户管理弹窗状态
+const showUserManagement = ref(false)
 
 const activeMenu = computed(() => route.path)
 
@@ -133,7 +144,7 @@ const currentPageTitle = computed(() => {
     '/dashboard': '仪表板',
     '/systems': '系统管理',
     '/topics': 'Topic总览',
-    '/groups': '分组管理'
+    '/groups': '业务管理'
   }
   
   // 处理动态路由
@@ -145,7 +156,9 @@ const currentPageTitle = computed(() => {
 })
 
 const handleCommand = async (command: string) => {
-  if (command === 'logout') {
+  if (command === 'userManagement') {
+    showUserManagement.value = true
+  } else if (command === 'logout') {
     try {
       await ElMessageBox.confirm(
         '确定要退出登录吗？',

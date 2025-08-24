@@ -4,6 +4,9 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.emqx.topichub.entity.Tag;
 import org.apache.ibatis.annotations.Mapper;
 
+/**
+ * @author EMQX Topic Hub Team
+ */
 @Mapper
 public interface TagMapper extends BaseMapper<Tag> {
 

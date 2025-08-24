@@ -10,17 +10,16 @@ spring:
   # 数据源配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/emqx_topic_hub?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://127.0.0.1:3306/emqx_topic_hub?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
     username: root
-    password: 123456
+    password: mysql_password
 
   # Redis配置
   data:
     redis:
-      host: localhost
+      host: 127.0.0.1
       port: 6379
-      password:
-      database: 0
+      password: redis_password
       timeout: 5000ms
       lettuce:
         pool:
@@ -42,20 +41,10 @@ mybatis-plus:
       logic-not-delete-value: 0
   mapper-locations: classpath*:mapper/*.xml
 
-# 日志配置
-logging:
-  level:
-    com.emqx.topichub: debug
-    org.springframework.web: debug
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+# Sa-Token配置
+sa-token:
+  active-timeout: 86400
+  token-name: token
+  token-style: random-64
 
-# JWT配置
-jwt:
-  secret: emqx-topic-hub-secret-key-2024
-  expiration: 86400000  # 24小时
 
-# EMQX配置
-emqx:
-  default:
-    timeout: 30000  # 30秒超时

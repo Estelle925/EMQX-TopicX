@@ -129,7 +129,7 @@ export const TopicAPI = {
   },
 
   /**
-   * 批量分配分组
+   * 批量分配业务
    */
   batchAssignGroup(topicIds: number[], groupId: number): Promise<void> {
     return this.batchOperation({

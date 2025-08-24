@@ -23,13 +23,13 @@ public class TopicBatchRequest {
     private List<Long> topicIds;
 
     /**
-     * 操作类型：assignGroup（分配分组）、addTags（添加标签）、removeTags（移除标签）
+     * 操作类型：assignGroup（分配业务）、addTags（添加标签）、removeTags（移除标签）
      */
     @NotNull(message = "操作类型不能为空")
     private String action;
 
     /**
-     * 分组ID（当action为assignGroup时使用）
+     * 业务ID（当action为assignGroup时使用）
      */
     private Long groupId;
 

@@ -97,10 +97,17 @@ const handleLogin = async () => {
     await loginFormRef.value.validate()
     loading.value = true
     
-    await authStore.login({
+    const response = await authStore.login({
       username: loginForm.username,
       password: loginForm.password
     })
+    
+    // 打印token和过期时间日志
+    console.log('登录成功，Token信息:')
+    console.log('Token:', response.token)
+    console.log('过期时间:', response.expiresAt)
+    console.log('过期时间戳:', new Date(response.expiresAt).getTime())
+    console.log('当前时间:', new Date().toISOString())
     
     ElMessage.success('登录成功')
     router.push('/dashboard')

@@ -58,7 +58,7 @@ public class User {
      * 状态
      */
     @TableField("status")
-    private Integer status;
+    private String status;
 
     /**
      * 创建时间

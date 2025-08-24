@@ -1,11 +1,17 @@
 package com.emqx.topichub.config;
 
 import cn.dev33.satoken.interceptor.SaInterceptor;
-import cn.dev33.satoken.router.SaRouter;
 import cn.dev33.satoken.stp.StpUtil;
+import com.emqx.topichub.common.BusinessException;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.util.Objects;
 
 /**
  * Sa-Token 配置类
@@ -14,6 +20,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * @author EMQX Topic Hub Team
  * @since 1.0.0
  */
+@Slf4j
 @Configuration
 public class SaTokenConfig implements WebMvcConfigurer {
 
@@ -23,16 +30,8 @@ public class SaTokenConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         // 注册 Sa-Token 拦截器，校验规则为 StpUtil.checkLogin() 登录校验。
-        registry.addInterceptor(new SaInterceptor(handle -> {
-            // 指定一条 match 规则
-            SaRouter
-                    .match("/**")
-                    .notMatch("/api/auth/login")
-                    .notMatch("/api/auth/logout")
-                    .notMatch("/error")
-                    .notMatch("/favicon.ico")
-                    .notMatch("/actuator/**")
-                    .check(r -> StpUtil.checkLogin());
-        })).addPathPatterns("/**");
+        registry.addInterceptor(new SaInterceptor(handle -> StpUtil.checkLogin()))
+                .addPathPatterns("/**")
+                .excludePathPatterns("/auth/*", "/topics/*/public-doc");
     }
 }

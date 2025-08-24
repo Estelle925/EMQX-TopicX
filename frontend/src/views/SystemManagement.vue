@@ -226,19 +226,20 @@ const searchKeyword = ref('')
 const systems = ref<EmqxSystem[]>([])
 const systemStats = ref<SystemStatsDTO>({
   totalSystems: 0,
-  onlineSystems: 0,
-  offlineSystems: 0,
+  onlineCount: 0,
+  offlineCount: 0,
   totalTopics: 0
 })
 
 // 计算属性
-const onlineCount = computed(() => systemStats.value.onlineSystems)
-const offlineCount = computed(() => systemStats.value.offlineSystems)
+const onlineCount = computed(() => systemStats.value.onlineCount)
+const offlineCount = computed(() => systemStats.value.offlineCount)
 const totalSystems = computed(() => systemStats.value.totalSystems)
 const totalTopics = computed(() => systemStats.value.totalTopics)
 
 const filteredSystems = ref<EmqxSystem[]>([])
 
+console.info('onlineCount', onlineCount.value)
 // 监听搜索关键词变化
 const searchSystems = async () => {
   loading.value = true
@@ -307,7 +308,7 @@ const loadSystems = async () => {
     systemStats.value = stats
   } catch (error) {
     console.error('加载系统列表失败:', error)
-    ElMessage.error('加载系统列表失败')
+    // ElMessage.error('加载系统列表失败')
   } finally {
     loading.value = false
   }
@@ -693,9 +694,9 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   padding: 8px 16px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(226, 232, 240, 0.6);
+  border-radius: 0;
+  background: transparent;
+  border: none;
 }
 
 .status-dot {
@@ -792,7 +793,7 @@ onMounted(() => {
 }
 
 :deep(.el-button) {
-  border-radius: 8px;
+  border-radius: 4px;
   font-weight: 500;
   transition: all 0.3s ease;
 }
