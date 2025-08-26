@@ -4,8 +4,6 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.emqx.topichub.entity.EmqxSystem;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -35,25 +33,7 @@ public class EmqxService {
     @Resource
     private RestTemplate restTemplate;
 
-    // API路径常量
-    private static final String API_STATUS_PATH = "/api/v5/status";
-    private static final String API_STATS_PATH = "/api/v5/stats";
-    
-    // HTTP头常量
-    private static final String HEADER_AUTHORIZATION = "Authorization";
-    
-    // JSON字段常量
-    private static final String FIELD_VERSION = "version";
-    private static final String FIELD_NODE = "node";
-    private static final String FIELD_STATUS = "status";
-    private static final String FIELD_DATA = "data";
-    private static final String FIELD_TOPICS = "topics.count";
-    private static final String FIELD_CONNECTIONS = "connections";
-    private static final String FIELD_COUNT = "count";
-    
-    // 默认值常量
-    private static final String DEFAULT_UNKNOWN = "Unknown";
-    private static final int DEFAULT_COUNT = 0;
+
 
     /**
      * 从EMQX系统获取Topic列表
@@ -203,22 +183,19 @@ public class EmqxService {
      */
     private String parseTokenFromLoginResponse(String responseBody) {
         try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode jsonNode = objectMapper.readTree(responseBody);
+            JSONObject jsonObject = JSON.parseObject(responseBody);
             
             // 直接检查是否有token字段
-            if (jsonNode.has("token")) {
-                String token = jsonNode.get("token").asText();
-                if (token != null && !token.trim().isEmpty()) {
-                    return token;
-                }
+            String token = jsonObject.getString("token");
+            if (token != null && !token.trim().isEmpty()) {
+                return token;
             }
             
             // 如果有code字段，检查是否成功
-            if (jsonNode.has("code")) {
-                int code = jsonNode.get("code").asInt();
-                if (code == 0 && jsonNode.has("token")) {
-                    return jsonNode.get("token").asText();
+            Integer code = jsonObject.getInteger("code");
+            if (code != null) {
+                if (code == 0 && jsonObject.containsKey("token")) {
+                    return jsonObject.getString("token");
                 }
                 throw new RuntimeException("登录失败，错误码: " + code);
             }
@@ -241,21 +218,19 @@ public class EmqxService {
         Set<String> topicPaths = new HashSet<>();
         
         try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode jsonNode = objectMapper.readTree(responseBody);
+            JSONObject jsonObject = JSON.parseObject(responseBody);
             
             // 检查响应是否成功
-            if (jsonNode.has("code") && jsonNode.get("code").asInt() == 0) {
+            Integer code = jsonObject.getInteger("code");
+            if (code != null && code == 0) {
                 // 获取data数组
-                if (jsonNode.has("data") && jsonNode.get("data").isArray()) {
-                    JsonNode dataArray = jsonNode.get("data");
-                    
-                    for (JsonNode topicNode : dataArray) {
-                        if (topicNode.has("topic")) {
-                            String topicPath = topicNode.get("topic").asText();
-                            if (topicPath != null && !topicPath.trim().isEmpty()) {
-                                topicPaths.add(topicPath.trim());
-                            }
+                JSONArray dataArray = jsonObject.getJSONArray("data");
+                if (dataArray != null) {
+                    for (int i = 0; i < dataArray.size(); i++) {
+                        JSONObject topicNode = dataArray.getJSONObject(i);
+                        String topicPath = topicNode.getString("topic");
+                        if (topicPath != null && !topicPath.trim().isEmpty()) {
+                            topicPaths.add(topicPath.trim());
                         }
                     }
                 }
@@ -284,12 +259,12 @@ public class EmqxService {
             
             // 创建认证头
             HttpHeaders headers = new HttpHeaders();
-            headers.set(HEADER_AUTHORIZATION, "Bearer " + bearerToken);
+            headers.set("Authorization", "Bearer " + bearerToken);
 
             HttpEntity<String> entity = new HttpEntity<>(headers);
 
             // 测试连接
-            String apiUrl = emqxSystem.getUrl() + API_STATUS_PATH;
+            String apiUrl = emqxSystem.getUrl() + "/api/v5/status";
             ResponseEntity<String> response = restTemplate.exchange(
                     apiUrl, HttpMethod.GET, entity, String.class);
 
@@ -313,12 +288,12 @@ public class EmqxService {
             
             // 创建认证头
             HttpHeaders headers = new HttpHeaders();
-            headers.set(HEADER_AUTHORIZATION, "Bearer " + bearerToken);
+            headers.set("Authorization", "Bearer " + bearerToken);
 
             HttpEntity<String> entity = new HttpEntity<>(headers);
 
             // 获取状态信息
-            String apiUrl = emqxSystem.getUrl() + API_STATUS_PATH;
+            String apiUrl = emqxSystem.getUrl() + "/api/v5/status";
             ResponseEntity<String> response = restTemplate.exchange(
                     apiUrl, HttpMethod.GET, entity, String.class);
 
@@ -346,12 +321,12 @@ public class EmqxService {
             
             // 创建认证头
             HttpHeaders headers = new HttpHeaders();
-            headers.set(HEADER_AUTHORIZATION, "Bearer " + bearerToken);
+            headers.set("Authorization", "Bearer " + bearerToken);
 
             HttpEntity<String> entity = new HttpEntity<>(headers);
 
             // 获取统计信息
-            String apiUrl = emqxSystem.getUrl() + API_STATS_PATH;
+            String apiUrl = emqxSystem.getUrl() + "/api/v5/stats";
             ResponseEntity<String> response = restTemplate.exchange(
                     apiUrl, HttpMethod.GET, entity, String.class);
 
@@ -374,37 +349,47 @@ public class EmqxService {
      */
     public String parseVersionFromResponse(String response) {
         try {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode rootNode = mapper.readTree(response);
+            JSONObject jsonObject = JSON.parseObject(response);
 
             // EMQX API通常在根节点或status节点中包含版本信息
-            if (rootNode.has(FIELD_VERSION)) {
-                return rootNode.get(FIELD_VERSION).asText();
+            String version = jsonObject.getString("version");
+            if (version != null) {
+                return version;
             }
 
             // 检查是否在status对象中
-            if (rootNode.has(FIELD_STATUS) && rootNode.get(FIELD_STATUS).has(FIELD_VERSION)) {
-                return rootNode.get(FIELD_STATUS).get(FIELD_VERSION).asText();
+            JSONObject statusObj = jsonObject.getJSONObject("status");
+            if (statusObj != null) {
+                version = statusObj.getString("version");
+                if (version != null) {
+                    return version;
+                }
             }
 
             // 检查是否在data对象中
-            if (rootNode.has(FIELD_DATA) && rootNode.get(FIELD_DATA).has(FIELD_VERSION)) {
-                return rootNode.get(FIELD_DATA).get(FIELD_VERSION).asText();
+            JSONObject dataObj = jsonObject.getJSONObject("data");
+            if (dataObj != null) {
+                version = dataObj.getString("version");
+                if (version != null) {
+                    return version;
+                }
             }
 
             // 如果是节点列表响应，尝试从第一个节点获取版本
-            if (rootNode.isArray() && !rootNode.isEmpty()) {
-                JsonNode firstNode = rootNode.get(0);
-                if (firstNode.has(FIELD_VERSION)) {
-                    return firstNode.get(FIELD_VERSION).asText();
+            JSONArray jsonArray = JSON.parseArray(response);
+            if (jsonArray != null && !jsonArray.isEmpty()) {
+                JSONObject firstNode = jsonArray.getJSONObject(0);
+                version = firstNode.getString("version");
+                if (version != null) {
+                    return version;
                 }
             }
 
             log.warn("无法从EMQX API响应中解析版本信息: {}", response);
-            return DEFAULT_UNKNOWN;
+            return "Unknown";
         } catch (Exception e) {
             log.error("解析EMQX版本信息时发生错误", e);
-            return DEFAULT_UNKNOWN;
+            return "Unknown";
         }
     }
 
@@ -417,19 +402,23 @@ public class EmqxService {
     public String parseNodeInfoFromResponse(String response) {
         try {
             // 首先尝试解析为JSON
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode rootNode = mapper.readTree(response);
+            JSONObject jsonObject = JSON.parseObject(response);
 
             // 检查是否有节点信息
-            if (rootNode.has(FIELD_NODE)) {
-                return rootNode.get(FIELD_NODE).asText();
+            String node = jsonObject.getString("node");
+            if (node != null) {
+                return node;
             }
 
-            if (rootNode.has(FIELD_DATA) && rootNode.get(FIELD_DATA).has(FIELD_NODE)) {
-                return rootNode.get(FIELD_DATA).get(FIELD_NODE).asText();
+            JSONObject dataObj = jsonObject.getJSONObject("data");
+            if (dataObj != null) {
+                node = dataObj.getString("node");
+                if (node != null) {
+                    return node;
+                }
             }
 
-            return DEFAULT_UNKNOWN;
+            return "Unknown";
         } catch (Exception e) {
             // 如果JSON解析失败，尝试从纯文本中提取节点信息
             try {
@@ -461,7 +450,7 @@ public class EmqxService {
             }
             
             log.debug("无法解析节点信息，响应内容: {}", response);
-            return DEFAULT_UNKNOWN;
+            return "Unknown";
         }
     }
 
@@ -469,16 +458,17 @@ public class EmqxService {
      * 从JSON节点中解析计数信息
      * @return 计数值
      */
-    public long parseCountFromNode( String response,String fieldName) {
+    public long parseCountFromNode(String response, String fieldName) {
         try {
             JSONArray jsonArray = JSON.parseArray(response);
-            if(!CollectionUtils.isEmpty(jsonArray)) {
+            if (!CollectionUtils.isEmpty(jsonArray)) {
                 JSONObject dataJson = jsonArray.getJSONObject(0);
-                return dataJson.getLong(fieldName);
+                Long count = dataJson.getLong(fieldName);
+                return count != null ? count : 0;
             }
         } catch (Exception e) {
-           log.error("解析JSON节点时发生错误: {}", e.getMessage());
+            log.error("解析JSON节点时发生错误: {}", e.getMessage());
         }
-        return DEFAULT_COUNT;
+        return 0;
     }
 }

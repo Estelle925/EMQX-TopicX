@@ -149,7 +149,13 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             // 处理标签关联
             if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
                 saveTopicTags(topic.getId(), request.getTagIds());
+                // 更新标签使用次数统计
+                updateTagsUsageCount(request.getTagIds());
             }
+            
+            // 更新分组Topic数量统计
+            updateGroupTopicCount(topic.getGroupId());
+            
             return convertToDTO(topic);
         } else {
             throw new RuntimeException("创建Topic失败");
@@ -186,8 +192,29 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         existingTopic.setUpdatedAt(LocalDateTime.now());
 
         if (this.updateById(existingTopic)) {
+            // 获取原有标签ID列表
+            List<Long> oldTagIds = getTagsByTopicId(id).stream()
+                    .map(TagDTO::getId)
+                    .collect(Collectors.toList());
+            
+            // 获取原有分组ID
+            Long oldGroupId = existingTopic.getGroupId();
+            
             // 更新标签关联
             updateTopicTags(id, request.getTagIds());
+            
+            // 更新标签使用次数统计（包括新旧标签）
+            updateTagsUsageCount(oldTagIds);
+            if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
+                updateTagsUsageCount(request.getTagIds());
+            }
+            
+            // 如果分组发生变更，更新相关分组的Topic数量统计
+            if (!oldGroupId.equals(request.getGroupId())) {
+                updateGroupTopicCount(oldGroupId); // 更新原分组
+                updateGroupTopicCount(request.getGroupId()); // 更新新分组
+            }
+            
             return convertToDTO(existingTopic);
         } else {
             throw new RuntimeException("更新Topic失败");
@@ -210,6 +237,11 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         topic.setUpdatedAt(LocalDateTime.now());
 
         if (this.updateById(topic)) {
+            // 获取要删除的标签ID列表
+            List<Long> tagIds = getTagsByTopicId(id).stream()
+                    .map(TagDTO::getId)
+                    .collect(Collectors.toList());
+            
             // 删除标签关联
             QueryWrapper<TopicTag> tagQueryWrapper = new QueryWrapper<>();
             tagQueryWrapper.eq("topic_id", id).eq("deleted", false);
@@ -218,6 +250,12 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
                 topicTag.setDeleted(1);
             });
             topicTagService.updateBatchById(topicTags);
+            
+            // 更新标签使用次数统计
+            updateTagsUsageCount(tagIds);
+            
+            // 更新分组Topic数量统计
+            updateGroupTopicCount(topic.getGroupId());
         } else {
             throw new RuntimeException("删除Topic失败");
         }
@@ -282,6 +320,8 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
 
         if (!newTagIds.isEmpty()) {
             saveTopicTags(id, newTagIds);
+            // 更新标签使用次数统计
+            updateTagsUsageCount(newTagIds);
         }
     }
 
@@ -308,6 +348,9 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         });
 
         topicTagService.updateBatchById(topicTags);
+        
+        // 更新标签使用次数统计
+        updateTagsUsageCount(tagIds);
     }
 
     // ========== 私有辅助方法 ==========
@@ -410,11 +453,24 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
     @Transactional(rollbackFor = Exception.class)
     public void batchAssignGroup(List<Long> topicIds, Long groupId) {
         List<Topic> topics = this.listByIds(topicIds);
+        
+        // 收集所有涉及的分组ID（包括原分组和新分组）
+        Set<Long> affectedGroupIds = topics.stream()
+                .map(Topic::getGroupId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+        affectedGroupIds.add(groupId);
+        
         topics.forEach(topic -> {
             topic.setGroupId(groupId);
             topic.setUpdatedAt(LocalDateTime.now());
         });
         this.updateBatchById(topics);
+        
+        // 更新所有涉及分组的Topic数量统计
+        for (Long affectedGroupId : affectedGroupIds) {
+            updateGroupTopicCount(affectedGroupId);
+        }
     }
 
     /**
@@ -436,6 +492,9 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
                 saveTopicTags(topicId, newTagIds);
             }
         }
+        
+        // 更新标签使用次数统计
+        updateTagsUsageCount(tagIds);
     }
 
     /**
@@ -454,6 +513,9 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             });
             topicTagService.updateBatchById(topicTags);
         }
+        
+        // 更新标签使用次数统计
+        updateTagsUsageCount(tagIds);
     }
 
     /**
@@ -542,6 +604,12 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         }
 
         log.info("Topic同步完成，新增: {}，更新: {}", syncedCount, updatedCount);
+        
+        // 如果有新增的Topic，更新默认分组的Topic数量统计
+        if (syncedCount > 0) {
+            updateGroupTopicCount(1L); // 默认分组ID为1
+        }
+        
         return TopicSyncResult.success(syncedCount, updatedCount);
     }
 
@@ -558,5 +626,70 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             return parts[parts.length - 1];
         }
         return topicPath;
+    }
+
+    /**
+     * 更新分组的Topic数量统计
+     *
+     * @param groupId 分组ID
+     */
+    private void updateGroupTopicCount(Long groupId) {
+        if (groupId == null) {
+            return;
+        }
+        
+        try {
+            QueryWrapper<Topic> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("group_id", groupId).eq("deleted", false);
+            long topicCount = this.count(queryWrapper);
+            
+            Group group = groupService.getById(groupId);
+            if (group != null) {
+                group.setTopicCount((int) topicCount);
+                groupService.updateById(group);
+            }
+        } catch (Exception e) {
+            log.warn("更新分组Topic数量统计失败，groupId: {}", groupId, e);
+        }
+    }
+
+    /**
+     * 更新标签的使用次数统计
+     *
+     * @param tagId 标签ID
+     */
+    private void updateTagUsageCount(Long tagId) {
+        if (tagId == null) {
+            return;
+        }
+        
+        try {
+            QueryWrapper<TopicTag> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("tag_id", tagId).eq("deleted", false);
+            long usageCount = topicTagService.count(queryWrapper);
+            
+            Tag tag = tagService.getById(tagId);
+            if (tag != null) {
+                tag.setUsageCount((int) usageCount);
+                tagService.updateById(tag);
+            }
+        } catch (Exception e) {
+            log.warn("更新标签使用次数统计失败，tagId: {}", tagId, e);
+        }
+    }
+
+    /**
+     * 批量更新标签的使用次数统计
+     *
+     * @param tagIds 标签ID列表
+     */
+    private void updateTagsUsageCount(List<Long> tagIds) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            return;
+        }
+        
+        for (Long tagId : tagIds) {
+            updateTagUsageCount(tagId);
+        }
     }
 }
