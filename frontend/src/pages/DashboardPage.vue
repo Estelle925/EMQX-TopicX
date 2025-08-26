@@ -36,6 +36,11 @@
             <el-icon><Folder /></el-icon>
             <span>业务管理</span>
           </el-menu-item>
+          
+          <el-menu-item index="/payload-templates">
+            <el-icon><Document /></el-icon>
+            <span>Payload模板</span>
+          </el-menu-item>
         </el-menu>
         
         <!-- 折叠按钮移到底部 -->
@@ -144,7 +149,8 @@ const currentPageTitle = computed(() => {
     '/dashboard': '仪表板',
     '/systems': '系统管理',
     '/topics': 'Topic总览',
-    '/groups': '业务管理'
+    '/groups': '业务管理',
+    '/payload-templates': 'Payload模板'
   }
   
   // 处理动态路由

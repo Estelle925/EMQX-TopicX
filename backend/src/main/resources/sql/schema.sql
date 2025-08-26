@@ -140,6 +140,35 @@ CREATE TABLE `topic_tag`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Topic标签关联表';
 
 -- ----------------------------
+-- Payload模板表
+-- ----------------------------
+DROP TABLE IF EXISTS `payload_template`;
+CREATE TABLE `payload_template`
+(
+    `id`             bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `name`           varchar(100) NOT NULL COMMENT '模板名称',
+    `description`    text                  DEFAULT NULL COMMENT '模板描述',
+    `group_id`       bigint(20)            DEFAULT NULL COMMENT '所属业务分组ID',
+    `type`           varchar(20)  NOT NULL DEFAULT 'json' COMMENT '模板类型：json-JSON格式，xml-XML格式，text-纯文本',
+    `content`        text         NOT NULL COMMENT '模板内容',
+    `usage_count`    int(11)      NOT NULL DEFAULT 0 COMMENT '使用次数',
+    `is_favorite`    tinyint(1)   NOT NULL DEFAULT 0 COMMENT '是否收藏：0-否，1-是',
+    `last_used_at`   datetime              DEFAULT NULL COMMENT '最后使用时间',
+    `created_at`     datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at`     datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted`        int(11)      NOT NULL DEFAULT 0 COMMENT '逻辑删除标记：0-未删除，1-已删除',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_group_name` (`group_id`, `name`),
+    KEY              `idx_group_id` (`group_id`),
+    KEY              `idx_type` (`type`),
+    KEY              `idx_usage_count` (`usage_count`),
+    KEY              `idx_is_favorite` (`is_favorite`),
+    KEY              `idx_last_used_at` (`last_used_at`),
+    KEY              `idx_created_at` (`created_at`),
+    CONSTRAINT `fk_payload_template_group` FOREIGN KEY (`group_id`) REFERENCES `topic_group` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Payload模板表';
+
+-- ----------------------------
 -- 初始化数据
 -- ----------------------------
 
@@ -194,7 +223,7 @@ VALUES ('重要', '#ff4d4f', 25),
 
 -- 插入Topic数据
 INSERT INTO `topic` (`name`, `path`, `system_id`, `group_id`, `last_activity`, `payload_doc`)
-VALUES 
+VALUES
 -- 生产环境Topics
 ('设备温度数据', 'device/+/temperature', 1, 2, NOW(), '{"temperature": 25.5, "unit": "celsius", "timestamp": 1640995200}'),
 ('设备湿度数据', 'device/+/humidity', 1, 2, DATE_SUB(NOW(), INTERVAL 5 MINUTE), '{"humidity": 65.2, "unit": "percent", "timestamp": 1640995200}'),
@@ -230,7 +259,7 @@ VALUES
 
 -- 插入Topic标签关联数据
 INSERT INTO `topic_tag` (`topic_id`, `tag_id`)
-VALUES 
+VALUES
 -- 设备温度数据的标签
 (1, 1), (1, 2), (1, 6), (1, 7),
 -- 设备湿度数据的标签
@@ -273,6 +302,34 @@ VALUES
 (20, 2), (20, 4),
 -- 外部系统通知的标签
 (21, 4), (21, 13);
+
+-- 插入Payload模板数据
+INSERT INTO `payload_template` (`name`, `description`, `group_id`, `type`, `content`, `usage_count`, `is_favorite`, `last_used_at`)
+VALUES
+-- 设备数据相关模板
+('设备温度上报模板', '设备温度数据上报的标准JSON格式', 2, 'json', '{\n  "device_id": "${device_id}",\n  "temperature": ${temperature},\n  "unit": "celsius",\n  "timestamp": ${timestamp},\n  "location": "${location}"\n}', 45, 1, NOW()),
+('设备状态模板', '设备状态信息上报模板', 2, 'json', '{\n  "device_id": "${device_id}",\n  "status": "${status}",\n  "battery_level": ${battery_level},\n  "signal_strength": ${signal_strength},\n  "last_heartbeat": ${timestamp}\n}', 32, 1, DATE_SUB(NOW(), INTERVAL 2 HOUR)),
+('传感器数据模板', '多传感器数据采集模板', 5, 'json', '{\n  "sensor_id": "${sensor_id}",\n  "readings": {\n    "temperature": ${temperature},\n    "humidity": ${humidity},\n    "pressure": ${pressure}\n  },\n  "quality": "${quality}",\n  "timestamp": ${timestamp}\n}', 28, 0, DATE_SUB(NOW(), INTERVAL 1 DAY)),
+
+-- 系统消息相关模板
+('系统告警模板', '系统告警消息的标准格式', 7, 'json', '{\n  "alert_id": "${alert_id}",\n  "level": "${level}",\n  "source": "${source}",\n  "message": "${message}",\n  "details": "${details}",\n  "timestamp": ${timestamp},\n  "resolved": false\n}', 18, 1, DATE_SUB(NOW(), INTERVAL 3 HOUR)),
+('系统日志模板', '系统日志记录模板', 8, 'json', '{\n  "log_level": "${log_level}",\n  "module": "${module}",\n  "message": "${message}",\n  "user_id": "${user_id}",\n  "session_id": "${session_id}",\n  "timestamp": ${timestamp}\n}', 15, 0, DATE_SUB(NOW(), INTERVAL 5 HOUR)),
+
+-- 设备控制相关模板
+('设备控制指令模板', '设备远程控制指令模板', 6, 'json', '{\n  "command_id": "${command_id}",\n  "device_id": "${device_id}",\n  "action": "${action}",\n  "parameters": {\n    "value": "${value}",\n    "duration": ${duration}\n  },\n  "priority": "${priority}",\n  "timestamp": ${timestamp}\n}', 22, 1, DATE_SUB(NOW(), INTERVAL 30 MINUTE)),
+('设备配置更新模板', '设备配置参数更新模板', 6, 'json', '{\n  "device_id": "${device_id}",\n  "config_type": "${config_type}",\n  "settings": {\n    "sampling_rate": ${sampling_rate},\n    "report_interval": ${report_interval},\n    "threshold_values": {\n      "min": ${min_threshold},\n      "max": ${max_threshold}\n    }\n  },\n  "apply_immediately": ${apply_immediately}\n}', 12, 0, DATE_SUB(NOW(), INTERVAL 2 DAY)),
+
+-- 用户消息相关模板
+('用户通知模板', '用户消息通知模板', 4, 'json', '{\n  "user_id": "${user_id}",\n  "notification_type": "${notification_type}",\n  "title": "${title}",\n  "content": "${content}",\n  "priority": "${priority}",\n  "read_status": false,\n  "timestamp": ${timestamp}\n}', 8, 0, DATE_SUB(NOW(), INTERVAL 1 WEEK)),
+
+-- 统计分析相关模板
+('数据统计模板', '数据统计结果上报模板', 9, 'json', '{\n  "metric_name": "${metric_name}",\n  "value": ${value},\n  "unit": "${unit}",\n  "period": "${period}",\n  "aggregation_type": "${aggregation_type}",\n  "timestamp": ${timestamp},\n  "metadata": {\n    "source": "${source}",\n    "version": "${version}"\n  }\n}', 6, 0, DATE_SUB(NOW(), INTERVAL 3 DAY)),
+
+-- XML格式模板示例
+('设备数据XML模板', 'XML格式的设备数据模板', 2, 'xml', '<?xml version="1.0" encoding="UTF-8"?>\n<device_data>\n  <device_id>${device_id}</device_id>\n  <timestamp>${timestamp}</timestamp>\n  <sensors>\n    <temperature unit="celsius">${temperature}</temperature>\n    <humidity unit="percent">${humidity}</humidity>\n  </sensors>\n  <status>${status}</status>\n</device_data>', 3, 0, DATE_SUB(NOW(), INTERVAL 1 WEEK)),
+
+-- 纯文本模板示例
+('简单日志模板', '简单的文本日志格式', 8, 'text', '[${timestamp}] ${log_level}: ${message} - User: ${user_id}, Module: ${module}', 9, 0, DATE_SUB(NOW(), INTERVAL 4 DAY));
 
 SET
 FOREIGN_KEY_CHECKS = 1;

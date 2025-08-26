@@ -45,6 +45,11 @@ const router = createRouter({
           component: () => import('../views/GroupManagement.vue')
         },
         {
+          path: '/payload-templates',
+          name: 'PayloadTemplate',
+          component: () => import('../views/PayloadTemplate.vue')
+        },
+        {
           path: '/topics/:id',
           name: 'TopicDetail',
           component: () => import('../views/TopicDetail.vue'),
