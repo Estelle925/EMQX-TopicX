@@ -159,6 +159,13 @@ export const TopicAPI = {
       action: 'removeTags',
       tagIds
     })
+  },
+
+  /**
+   * 同步EMQX系统的Topic数据
+   */
+  syncTopicsFromEmqx(systemId: number): Promise<{ syncedCount: number; updatedCount: number; message: string }> {
+    return request.post(`/topics/sync/${systemId}`)
   }
 }
 

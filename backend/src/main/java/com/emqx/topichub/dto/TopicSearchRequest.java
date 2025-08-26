@@ -1,5 +1,6 @@
 package com.emqx.topichub.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.util.List;
@@ -37,6 +38,7 @@ public class TopicSearchRequest {
     /**
      * EMQX系统ID筛选
      */
+    @NotNull(message = "EMQX系统ID不能为空")
     private Long systemId;
 
     /**

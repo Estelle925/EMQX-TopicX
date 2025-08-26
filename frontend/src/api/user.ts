@@ -6,7 +6,7 @@ export interface User {
   username: string
   email: string
   realName: string
-  lastLogin: string
+  lastLoginAt: string
   status: 'active' | 'locked'
   createdAt: string
   updatedAt: string

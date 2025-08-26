@@ -3,7 +3,9 @@ package com.emqx.topichub.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.emqx.topichub.common.Result;
 import com.emqx.topichub.dto.*;
+import com.emqx.topichub.dto.TopicSyncResult;
 import com.emqx.topichub.service.TopicService;
+import com.emqx.topichub.service.RateLimitService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +25,7 @@ import java.util.List;
 public class TopicController {
 
     private final TopicService topicService;
+    private final RateLimitService rateLimitService;
 
     /**
      * 分页搜索Topic列表
@@ -31,7 +34,7 @@ public class TopicController {
      * @return 分页Topic列表
      */
     @PostMapping("/search")
-    public Result<IPage<TopicDTO>> searchTopics(@RequestBody TopicSearchRequest request) {
+    public Result<IPage<TopicDTO>> searchTopics(@Valid @RequestBody TopicSearchRequest request) {
         IPage<TopicDTO> result = topicService.searchTopics(request);
         return Result.success(result);
     }
@@ -190,6 +193,29 @@ public class TopicController {
             publicDoc.setTags(result.getTags());
             publicDoc.setLastActivity(result.getLastActivity());
             return Result.success(publicDoc);
+        } catch (RuntimeException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 同步EMQX系统的Topic数据
+     *
+     * @param systemId EMQX系统ID
+     * @return 同步结果
+     */
+    @PostMapping("/sync/{systemId}")
+    public Result<TopicSyncResult> syncTopicsFromEmqx(@PathVariable("systemId") Long systemId) {
+        try {
+            // 检查限流
+//            if (!rateLimitService.isTopicSyncAllowed(systemId)) {
+//                Long remainingTime = rateLimitService.getTopicSyncRemainingTime(systemId);
+//                String message = String.format("同步操作过于频繁，请等待 %d 秒后再试", remainingTime);
+//                return Result.error(message);
+//            }
+            
+            TopicSyncResult result = topicService.syncTopicsFromEmqx(systemId);
+            return Result.success(result);
         } catch (RuntimeException e) {
             return Result.error(e.getMessage());
         }
