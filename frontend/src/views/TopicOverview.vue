@@ -756,6 +756,22 @@ const handleBatchPayload = async () => {
     }
     
     await TopicAPI.batchOperation(requestData)
+    
+    // 如果使用模板模式，增加模板使用次数
+    if (batchPayloadForm.mode === 'template' && batchPayloadForm.templateId) {
+      try {
+        await PayloadTemplateAPI.useTemplate(batchPayloadForm.templateId)
+        // 更新本地模板数据
+        const template = payloadTemplates.value.find(t => t.id === batchPayloadForm.templateId)
+        if (template) {
+          template.usageCount = (template.usageCount || 0) + 1
+          template.lastUsed = new Date().toISOString()
+        }
+      } catch (error) {
+        console.error('更新模板使用次数失败:', error)
+      }
+    }
+    
     ElMessage.success(`成功为 ${selectedTopics.value.length} 个 Topic 设置Payload`)
     showBatchPayloadDialog.value = false
     

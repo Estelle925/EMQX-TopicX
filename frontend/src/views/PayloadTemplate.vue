@@ -470,14 +470,6 @@ const handleTemplateAction = (command: string, template: PayloadTemplateDTO) => 
 const viewTemplate = async (template: PayloadTemplateDTO) => {
   selectedTemplate.value = template
   showDetailDialog.value = true
-  // 增加使用次数
-  try {
-    await PayloadTemplateAPI.useTemplate(template.id)
-    template.usageCount = (template.usageCount || 0) + 1
-    template.lastUsed = new Date().toISOString()
-  } catch (error) {
-    console.error('更新使用次数失败:', error)
-  }
 }
 
 const editTemplate = (template: PayloadTemplateDTO) => {

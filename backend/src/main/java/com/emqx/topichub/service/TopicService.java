@@ -8,8 +8,6 @@ import com.emqx.topichub.dto.*;
 import com.emqx.topichub.entity.EmqxSystem;
 import com.emqx.topichub.service.EmqxSystemService;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Objects;
 import java.util.Set;
 import com.emqx.topichub.entity.Group;
 import com.emqx.topichub.entity.Tag;
@@ -461,7 +459,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         // 收集所有涉及的分组ID（包括原分组和新分组）
         Set<Long> affectedGroupIds = topics.stream()
                 .map(Topic::getGroupId)
-                .filter(Objects::nonNull)
+                .filter(id -> id != null)
                 .collect(Collectors.toSet());
         affectedGroupIds.add(groupId);
         
@@ -526,7 +524,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
      * 批量更新Payload
      */
     @Transactional(rollbackFor = Exception.class)
-    public void batchUpdatePayload(List<Long> topicIds, Long templateId, String payloadDoc) {
+    private void batchUpdatePayload(List<Long> topicIds, Long templateId, String payloadDoc) {
         List<Topic> topics = this.listByIds(topicIds);
         
         String finalPayloadDoc = payloadDoc;
