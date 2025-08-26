@@ -49,11 +49,11 @@
         
         <div class="info-grid">
           <div class="info-item">
-            <label>Topic名称</label>
+            <label>主题名称</label>
             <div class="info-value">{{ topicInfo.name }}</div>
           </div>
           <div class="info-item">
-            <label>Topic路径</label>
+            <label>路径</label>
             <div class="info-value topic-path">{{ topicInfo.path }}</div>
           </div>
           <div class="info-item">
@@ -372,8 +372,7 @@ const refreshData = async () => {
   try {
     await Promise.all([
       loadTopicInfo(),
-      loadTopicTags(),
-      loadTopicStats()
+      loadTopicTags()
     ])
     ElMessage.success('数据刷新成功')
   } catch (error) {
@@ -436,14 +435,7 @@ const loadAvailableTags = async () => {
   }
 }
 
-const loadTopicStats = async () => {
-  // TODO: 从API加载统计信息
-  // 模拟数据
-  await new Promise(resolve => setTimeout(resolve, 400))
-  
-  // 模拟加载payload文档
-  payloadDoc.value = '# Payload说明\n\n这个Topic用于传输**传感器数据**，包含以下字段：\n\n- `temperature`: 温度值（摄氏度）\n- `humidity`: 湿度值（百分比）\n- `timestamp`: 时间戳\n\n示例数据：\n```json\n{\n  "temperature": 25.6,\n  "humidity": 60.2,\n  "timestamp": 1642234567890\n}\n```'
-}
+
 
 const toggleTagSelection = (tagId: number) => {
   const index = selectedTagIds.value.indexOf(tagId)
@@ -553,8 +545,7 @@ onMounted(async () => {
     await Promise.all([
       loadTopicInfo(),
       loadTopicTags(),
-      loadAvailableTags(),
-      loadTopicStats()
+      loadAvailableTags()
     ])
   } catch (error) {
     ElMessage.error('页面加载失败')

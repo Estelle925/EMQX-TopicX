@@ -8,6 +8,8 @@ import com.emqx.topichub.dto.*;
 import com.emqx.topichub.entity.EmqxSystem;
 import com.emqx.topichub.service.EmqxSystemService;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Objects;
 import java.util.Set;
 import com.emqx.topichub.entity.Group;
 import com.emqx.topichub.entity.Tag;
@@ -38,6 +40,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
     private final TopicTagService topicTagService;
     private final EmqxSystemService emqxSystemService;
     private final EmqxService emqxService;
+    private final PayloadTemplateService payloadTemplateService;
 
     /**
      * 分页搜索Topic列表
@@ -277,6 +280,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             case "assignGroup" -> batchAssignGroup(request.getTopicIds(), request.getGroupId());
             case "addTags" -> batchAddTags(request.getTopicIds(), request.getTagIds());
             case "removeTags" -> batchRemoveTags(request.getTopicIds(), request.getTagIds());
+            case "updatePayload" -> batchUpdatePayload(request.getTopicIds(), request.getTemplateId(), request.getPayloadDoc());
             default -> throw new RuntimeException("不支持的操作类型");
         }
     }
@@ -457,7 +461,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         // 收集所有涉及的分组ID（包括原分组和新分组）
         Set<Long> affectedGroupIds = topics.stream()
                 .map(Topic::getGroupId)
-                .filter(id -> id != null)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         affectedGroupIds.add(groupId);
         
@@ -516,6 +520,37 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         
         // 更新标签使用次数统计
         updateTagsUsageCount(tagIds);
+    }
+
+    /**
+     * 批量更新Payload
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void batchUpdatePayload(List<Long> topicIds, Long templateId, String payloadDoc) {
+        List<Topic> topics = this.listByIds(topicIds);
+        
+        String finalPayloadDoc = payloadDoc;
+        
+        // 如果提供了模板ID，则从模板获取内容
+        if (templateId != null) {
+            try {
+                PayloadTemplateDTO template = payloadTemplateService.getTemplateDtoById(templateId);
+                finalPayloadDoc = template.getPayload();
+                
+                // 增加模板使用次数
+                payloadTemplateService.useTemplate(templateId);
+            } catch (Exception e) {
+                throw new RuntimeException("获取Payload模板失败: " + e.getMessage());
+            }
+        }
+        
+        // 批量更新Topic的payloadDoc字段
+        for (Topic topic : topics) {
+            topic.setPayloadDoc(finalPayloadDoc);
+            topic.setUpdatedAt(LocalDateTime.now());
+        }
+        
+        this.updateBatchById(topics);
     }
 
     /**

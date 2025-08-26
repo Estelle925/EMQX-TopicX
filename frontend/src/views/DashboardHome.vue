@@ -340,7 +340,7 @@ onMounted(() => {
   align-items: center;
   font-size: 24px;
   font-weight: 700;
-  color: #22c55e;
+  color: #000000;
   margin-bottom: 24px;
 }
 

@@ -48,9 +48,11 @@ export interface TopicSearchRequest {
 
 export interface TopicBatchRequest {
   topicIds: number[]
-  action: 'assignGroup' | 'addTags' | 'removeTags'
+  action: 'assignGroup' | 'addTags' | 'removeTags' | 'updatePayload'
   groupId?: number
   tagIds?: number[]
+  templateId?: number
+  payloadDoc?: string
 }
 
 export interface PageResult<T> {

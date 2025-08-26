@@ -544,7 +544,7 @@ onMounted(() => {
 
 .header-left h2 {
   margin: 0 0 var(--spacing-xs) 0;
-  color: #22c55e;
+  color: #000000;
   font-size: 28px;
   font-weight: 700;
   display: flex;

@@ -23,7 +23,7 @@ public class TopicBatchRequest {
     private List<Long> topicIds;
 
     /**
-     * 操作类型：assignGroup（分配业务）、addTags（添加标签）、removeTags（移除标签）
+     * 操作类型：assignGroup（分配业务）、addTags（添加标签）、removeTags（移除标签）、updatePayload（更新Payload）
      */
     @NotNull(message = "操作类型不能为空")
     private String action;
@@ -37,4 +37,14 @@ public class TopicBatchRequest {
      * 标签ID列表（当action为addTags或removeTags时使用）
      */
     private List<Long> tagIds;
+
+    /**
+     * Payload模板ID（当action为updatePayload时使用）
+     */
+    private Long templateId;
+
+    /**
+     * 自定义Payload内容（当action为updatePayload且不使用模板时使用）
+     */
+    private String payloadDoc;
 }

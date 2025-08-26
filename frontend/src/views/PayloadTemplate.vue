@@ -1,6 +1,6 @@
 <template>
   <div class="payload-template">
-    <div class="page-header">
+    <div class="page-header transparent">
       <div class="header-left">
         <h2>Payload模板</h2>
         <p class="page-description">管理和使用Payload模板，支持按业务分组组织</p>
@@ -17,51 +17,9 @@
       </div>
     </div>
     
-    <!-- 统计卡片 -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-header">
-          <span class="stat-title">总模板数</span>
-          <div class="stat-icon templates">
-            <el-icon><Document /></el-icon>
-          </div>
-        </div>
-        <div class="stat-value">{{ statistics.totalTemplates }}</div>
-      </div>
-      
-      <div class="stat-card">
-        <div class="stat-header">
-          <span class="stat-title">业务分组</span>
-          <div class="stat-icon groups">
-            <el-icon><FolderOpened /></el-icon>
-          </div>
-        </div>
-        <div class="stat-value">{{ businessGroups.length }}</div>
-      </div>
-      
-      <div class="stat-card">
-        <div class="stat-header">
-          <span class="stat-title">最近使用</span>
-          <div class="stat-icon recent">
-            <el-icon><Clock /></el-icon>
-          </div>
-        </div>
-        <div class="stat-value">{{ statistics.recentUsedCount }}</div>
-      </div>
-      
-      <div class="stat-card">
-        <div class="stat-header">
-          <span class="stat-title">收藏模板</span>
-          <div class="stat-icon favorites">
-            <el-icon><Star /></el-icon>
-          </div>
-        </div>
-        <div class="stat-value">{{ statistics.favoriteCount }}</div>
-      </div>
-    </div>
 
     <!-- 搜索和筛选 -->
-    <div class="filter-section">
+    <div class="filter-section transparent">
       <div class="filter-left">
         <el-input
           v-model="searchKeyword"
@@ -662,7 +620,7 @@ onMounted(() => {
 <style scoped>
 .payload-template {
   padding: 24px;
-  background-color: #f5f5f5;
+  background-color: transparent;
   min-height: 100vh;
 }
 
@@ -675,6 +633,11 @@ onMounted(() => {
   padding: 24px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.page-header.transparent {
+  background: transparent;
+  box-shadow: none;
 }
 
 .header-left h2 {
@@ -768,15 +731,20 @@ onMounted(() => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+.filter-section.transparent {
+  background: transparent;
+  box-shadow: none;
+}
+
 .filter-left {
   display: flex;
   align-items: center;
 }
 
 .template-content {
-  background: white;
+  background: transparent;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
   min-height: 400px;
 }
 
@@ -808,12 +776,13 @@ onMounted(() => {
 }
 
 .template-card {
-  border: 1px solid #e4e7ed;
+  border: 2px solid #e4e7ed;
   border-radius: 8px;
   padding: 16px;
   cursor: pointer;
   transition: all 0.3s;
-  background: #fafafa;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .template-card:hover {
@@ -905,6 +874,21 @@ onMounted(() => {
 
 .list-view {
   padding: 24px;
+  background: transparent;
+}
+
+.list-view :deep(.el-table) {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid #e4e7ed;
+}
+
+.list-view :deep(.el-table__header-wrapper) {
+  border-radius: 12px 12px 0 0;
+}
+
+.list-view :deep(.el-table__body-wrapper) {
+  border-radius: 0 0 12px 12px;
 }
 
 .template-name {

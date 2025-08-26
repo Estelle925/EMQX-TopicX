@@ -155,6 +155,15 @@
         >
           导出数据
         </el-button>
+        
+        <el-button
+          type="warning"
+          :icon="Edit"
+          @click="showBatchPayloadDialog = true"
+          :disabled="!hasSelection"
+        >
+          批量设置Payload
+        </el-button>
       </div>
       
       <div class="action-right">
@@ -324,21 +333,21 @@
     <el-dialog
       v-model="showBatchTagDialog"
       title="批量管理标签"
-      width="500px"
+      width="600px"
+      :close-on-click-modal="false"
     >
-      <el-form :model="batchTagForm" label-width="80px">
+      <el-form :model="batchTagForm" label-width="120px">
         <el-form-item label="操作类型">
           <el-radio-group v-model="batchTagForm.action">
             <el-radio value="add">添加标签</el-radio>
             <el-radio value="remove">移除标签</el-radio>
           </el-radio-group>
         </el-form-item>
-        
         <el-form-item label="选择标签">
           <el-select
             v-model="batchTagForm.tagIds"
-            placeholder="请选择标签"
             multiple
+            placeholder="请选择标签"
             style="width: 100%"
           >
             <el-option
@@ -350,10 +359,72 @@
           </el-select>
         </el-form-item>
       </el-form>
-      
       <template #footer>
-        <el-button @click="showBatchTagDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleBatchTag">确定</el-button>
+        <span class="dialog-footer">
+          <el-button @click="showBatchTagDialog = false">取消</el-button>
+          <el-button type="primary" @click="handleBatchTag">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 批量设置Payload对话框 -->
+    <el-dialog
+      v-model="showBatchPayloadDialog"
+      title="批量设置Payload"
+      width="800px"
+      :close-on-click-modal="false"
+    >
+      <el-form :model="batchPayloadForm" label-width="120px">
+        <el-form-item label="设置方式">
+          <el-radio-group v-model="batchPayloadForm.mode">
+            <el-radio value="template">使用模板</el-radio>
+            <el-radio value="custom">自定义内容</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item v-if="batchPayloadForm.mode === 'template'" label="选择模板">
+          <el-select
+            v-model="batchPayloadForm.templateId"
+            placeholder="请选择Payload模板"
+            style="width: 100%"
+            filterable
+            @change="handleTemplateChange"
+          >
+            <el-option
+              v-for="template in payloadTemplates"
+              :key="template.id"
+              :label="`${template.name} (${template.groupName || '未分组'})`"
+              :value="template.id"
+            >
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>{{ template.name }}</span>
+                <el-tag size="small" type="info">{{ template.type }}</el-tag>
+              </div>
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="Payload内容">
+          <el-input
+            v-model="batchPayloadForm.payloadDoc"
+            type="textarea"
+            :rows="8"
+            placeholder="请输入Payload内容"
+            :readonly="batchPayloadForm.mode === 'template' && batchPayloadForm.templateId"
+          />
+        </el-form-item>
+        <el-form-item v-if="batchPayloadForm.mode === 'template' && selectedTemplate" label="模板信息">
+          <div class="template-info">
+            <p><strong>模板名称：</strong>{{ selectedTemplate.name }}</p>
+            <p><strong>模板类型：</strong>{{ selectedTemplate.type }}</p>
+            <p v-if="selectedTemplate.description"><strong>描述：</strong>{{ selectedTemplate.description }}</p>
+            <p><strong>使用次数：</strong>{{ selectedTemplate.usageCount }}</p>
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showBatchPayloadDialog = false">取消</el-button>
+          <el-button type="primary" @click="handleBatchPayload" :disabled="!batchPayloadForm.payloadDoc">确定</el-button>
+        </span>
       </template>
     </el-dialog>
   </div>
@@ -371,12 +442,14 @@ import {
   FolderAdd,
   PriceTag,
   Download,
-  Document
+  Document,
+  Edit
 } from '@element-plus/icons-vue'
-import { TopicAPI, type TopicDTO, type TopicSearchRequest } from '@/api/topic'
+import TopicAPI, { type TopicDTO, type TopicSearchRequest, type TopicBatchRequest } from '@/api/topic'
 import { GroupAPI, type GroupDTO } from '@/api/group'
 import { TagAPI, type TagDTO } from '@/api/tag'
 import { SystemAPI, type SystemManagementDTO } from '@/api/system'
+import { PayloadTemplateAPI, type PayloadTemplateDTO } from '@/api/payloadTemplate'
 
 // 类型定义
 type Topic = TopicDTO
@@ -425,10 +498,13 @@ const selectedTopics = ref<Topic[]>([])
 // 业务和标签数据
 const groups = ref<Group[]>([])
 const tags = ref<Tag[]>([])
+const payloadTemplates = ref<PayloadTemplateDTO[]>([])
+const selectedTemplate = ref<PayloadTemplateDTO | null>(null)
 
 // 批量操作对话框
 const showBatchGroupDialog = ref(false)
 const showBatchTagDialog = ref(false)
+const showBatchPayloadDialog = ref(false)
 
 const batchGroupForm = reactive({
   groupId: undefined as number | undefined
@@ -437,6 +513,12 @@ const batchGroupForm = reactive({
 const batchTagForm = reactive({
   action: 'add' as 'add' | 'remove',
   tagIds: [] as number[]
+})
+
+const batchPayloadForm = reactive({
+  mode: 'template' as 'template' | 'custom',
+  templateId: undefined as number | undefined,
+  payloadDoc: ''
 })
 
 // 计算属性
@@ -461,6 +543,19 @@ const loadTags = async () => {
   }
 }
 
+const loadPayloadTemplates = async () => {
+  try {
+    const result = await PayloadTemplateAPI.searchTemplates({
+      page: 1,
+      size: 1000 // 获取所有模板
+    })
+    payloadTemplates.value = result.records
+  } catch (error) {
+    console.error('加载Payload模板失败:', error)
+    ElMessage.error('加载Payload模板失败')
+  }
+}
+
 const loadSystems = async () => {
   try {
     const systems = await SystemAPI.getAllSystems()
@@ -476,6 +571,8 @@ const loadSystems = async () => {
     if (environments.value.length > 0 && !selectedEnvironment.value) {
       selectedEnvironment.value = environments.value[0].value
       searchForm.systemId = environments.value[0].systemId
+      // 设置默认环境后立即加载表格数据
+      await loadTableData()
     }
   } catch (error) {
     console.error('加载EMQX系统失败:', error)
@@ -632,6 +729,49 @@ const handleBatchTag = async () => {
   }
 }
 
+const handleTemplateChange = (templateId: number) => {
+  const template = payloadTemplates.value.find(t => t.id === templateId)
+  if (template) {
+    selectedTemplate.value = template
+    batchPayloadForm.payloadDoc = template.payload
+  } else {
+    selectedTemplate.value = null
+    batchPayloadForm.payloadDoc = ''
+  }
+}
+
+const handleBatchPayload = async () => {
+  if (!batchPayloadForm.payloadDoc.trim()) {
+    ElMessage.warning('请输入Payload内容')
+    return
+  }
+  
+  try {
+    const topicIds = selectedTopics.value.map(topic => topic.id)
+    const requestData: TopicBatchRequest = {
+      topicIds,
+      action: 'updatePayload' as const,
+      templateId: batchPayloadForm.mode === 'template' ? batchPayloadForm.templateId : undefined,
+      payloadDoc: batchPayloadForm.payloadDoc
+    }
+    
+    await TopicAPI.batchOperation(requestData)
+    ElMessage.success(`成功为 ${selectedTopics.value.length} 个 Topic 设置Payload`)
+    showBatchPayloadDialog.value = false
+    
+    // 重置表单
+    batchPayloadForm.mode = 'template'
+    batchPayloadForm.templateId = undefined
+    batchPayloadForm.payloadDoc = ''
+    selectedTemplate.value = null
+    
+    loadTableData()
+  } catch (error) {
+    console.error('批量设置Payload失败:', error)
+    ElMessage.error('批量设置Payload失败')
+  }
+}
+
 const exportData = async () => {
   try {
     await new Promise(resolve => setTimeout(resolve, 1000))
@@ -659,11 +799,15 @@ const formatDateTime = (dateTime: string) => {
 }
 
 // 生命周期
-onMounted(() => {
-  loadSystems()
+onMounted(async () => {
+  await loadSystems()
   loadGroups()
   loadTags()
-  loadTableData()
+  loadPayloadTemplates()
+  // 只有在有选中环境时才加载表格数据
+  if (selectedEnvironment.value) {
+    loadTableData()
+  }
 })
 </script>
 

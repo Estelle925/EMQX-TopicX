@@ -19,7 +19,7 @@
         >
           <el-menu-item index="/dashboard">
             <el-icon><House /></el-icon>
-            <span>仪表板</span>
+            <span>数据总览</span>
           </el-menu-item>
           
           <el-menu-item index="/systems">
@@ -39,7 +39,7 @@
           
           <el-menu-item index="/payload-templates">
             <el-icon><Document /></el-icon>
-            <span>Payload模板</span>
+            <span>消息模板</span>
           </el-menu-item>
         </el-menu>
         

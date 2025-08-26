@@ -138,6 +138,7 @@ public class PayloadTemplateService extends ServiceImpl<PayloadTemplateMapper, P
         template.setCreatedAt(LocalDateTime.now());
         template.setUpdatedAt(LocalDateTime.now());
         template.setDeleted(0);
+        template.setContent(request.getPayload());
 
         if (this.save(template)) {
             return convertToDTO(template);
@@ -387,7 +388,7 @@ public class PayloadTemplateService extends ServiceImpl<PayloadTemplateMapper, P
     private PayloadTemplateDTO convertToDTO(PayloadTemplate template) {
         PayloadTemplateDTO dto = new PayloadTemplateDTO();
         BeanUtils.copyProperties(template, dto);
-
+        dto.setPayload(template.getContent());
         // 设置业务分组名称
         if (template.getGroupId() != null) {
             Group group = groupService.getById(template.getGroupId());
