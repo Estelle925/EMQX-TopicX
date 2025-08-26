@@ -588,7 +588,6 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
                     newTopic.setName(generateTopicName(topicPath));
                     newTopic.setPath(topicPath);
                     newTopic.setSystemId(systemId);
-                    newTopic.setGroupId(1L);
                     newTopic.setLastActivity(LocalDateTime.now());
                     newTopic.setCreatedAt(LocalDateTime.now());
                     newTopic.setUpdatedAt(LocalDateTime.now());
@@ -604,11 +603,6 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         }
 
         log.info("Topic同步完成，新增: {}，更新: {}", syncedCount, updatedCount);
-        
-        // 如果有新增的Topic，更新默认分组的Topic数量统计
-        if (syncedCount > 0) {
-            updateGroupTopicCount(1L); // 默认分组ID为1
-        }
         
         return TopicSyncResult.success(syncedCount, updatedCount);
     }
