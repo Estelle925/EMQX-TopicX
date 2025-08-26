@@ -235,12 +235,22 @@ public class EmqxService {
                     }
                 }
             } else {
+                JSONArray dataJson = jsonObject.getJSONArray("data");
+                if (dataJson != null) {
+                    for (int i = 0; i < dataJson.size(); i++) {
+                        JSONObject topicNode = dataJson.getJSONObject(i);
+                        String topicPath = topicNode.getString("topic");
+                        if (topicPath != null && !topicPath.trim().isEmpty()) {
+                            topicPaths.add(topicPath.trim());
+                        }
+                    }
+                }
                 log.warn("EMQX API返回错误响应: {}", responseBody);
             }
             
         } catch (Exception e) {
             log.error("解析Topic响应失败: {}", responseBody, e);
-            throw new RuntimeException("解析Topic响应失败: " + e.getMessage());
+            throw new RuntimeException("解析Topic响应失败: ");
         }
         
         return topicPaths;

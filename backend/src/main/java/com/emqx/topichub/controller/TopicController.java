@@ -34,7 +34,7 @@ public class TopicController {
      * @return 分页Topic列表
      */
     @PostMapping("/search")
-    public Result<IPage<TopicDTO>> searchTopics(@RequestBody TopicSearchRequest request) {
+    public Result<IPage<TopicDTO>> searchTopics(@Valid @RequestBody TopicSearchRequest request) {
         IPage<TopicDTO> result = topicService.searchTopics(request);
         return Result.success(result);
     }
@@ -208,11 +208,11 @@ public class TopicController {
     public Result<TopicSyncResult> syncTopicsFromEmqx(@PathVariable("systemId") Long systemId) {
         try {
             // 检查限流
-            if (!rateLimitService.isTopicSyncAllowed(systemId)) {
-                Long remainingTime = rateLimitService.getTopicSyncRemainingTime(systemId);
-                String message = String.format("同步操作过于频繁，请等待 %d 秒后再试", remainingTime);
-                return Result.error(message);
-            }
+//            if (!rateLimitService.isTopicSyncAllowed(systemId)) {
+//                Long remainingTime = rateLimitService.getTopicSyncRemainingTime(systemId);
+//                String message = String.format("同步操作过于频繁，请等待 %d 秒后再试", remainingTime);
+//                return Result.error(message);
+//            }
             
             TopicSyncResult result = topicService.syncTopicsFromEmqx(systemId);
             return Result.success(result);

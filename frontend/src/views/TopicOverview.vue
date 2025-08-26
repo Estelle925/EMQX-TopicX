@@ -554,7 +554,8 @@ const loadTableData = async () => {
       groupId: searchForm.groupId || undefined,
       tagIds: searchForm.tags.length > 0 ? searchForm.tags : undefined,
       status: searchForm.status || undefined,
-      page: pagination.currentPage - 1, // 后端从0开始
+      systemId: selectedEnvironment.value || undefined,
+      page: pagination.currentPage - 1, 
       size: pagination.pageSize,
       sortBy: 'createdAt',
       sortDir: 'desc' as 'desc'
