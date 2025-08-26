@@ -10,7 +10,7 @@
         <div class="header-right">
           <el-select
             v-model="selectedEnvironment"
-            placeholder="选择环境"
+            placeholder="选择EMQX系统"
             class="environment-select"
             @change="handleEnvironmentChange"
           >
@@ -376,6 +376,7 @@ import {
 import { TopicAPI, type TopicDTO, type TopicSearchRequest } from '@/api/topic'
 import { GroupAPI, type GroupDTO } from '@/api/group'
 import { TagAPI, type TagDTO } from '@/api/tag'
+import { SystemAPI, type SystemManagementDTO } from '@/api/system'
 
 // 类型定义
 type Topic = TopicDTO
@@ -384,20 +385,17 @@ type Group = GroupDTO
 
 interface Environment {
   label: string
-  value: string
+  value: number
+  systemId: number
 }
 
 // 响应式数据
 const router = useRouter()
 const tableRef = ref()
 
-// 环境选择
-const selectedEnvironment = ref('production')
-const environments = ref<Environment[]>([
-  { label: '生产环境', value: 'production' },
-  { label: '测试环境', value: 'test' },
-  { label: '开发环境', value: 'development' }
-])
+// 环境选择（EMQX系统）
+const selectedEnvironment = ref<number | undefined>(undefined)
+const environments = ref<Environment[]>([])
 
 // 加载状态
 const refreshLoading = ref(false)
@@ -409,7 +407,8 @@ const searchForm = reactive({
   keyword: '',
   groupId: undefined as number | undefined,
   tags: [] as number[],
-  status: ''
+  status: '',
+  systemId: undefined as number | undefined
 })
 
 // 分页
@@ -462,10 +461,37 @@ const loadTags = async () => {
   }
 }
 
+const loadSystems = async () => {
+  try {
+    const systems = await SystemAPI.getAllSystems()
+    environments.value = systems
+      .filter(system => system.status === 'online')
+      .map(system => ({
+        label: system.name,
+        value: system.id,
+        systemId: system.id
+      }))
+    
+    // 如果有可用系统，默认选择第一个
+    if (environments.value.length > 0 && !selectedEnvironment.value) {
+      selectedEnvironment.value = environments.value[0].value
+      searchForm.systemId = environments.value[0].systemId
+    }
+  } catch (error) {
+    console.error('加载EMQX系统失败:', error)
+    ElMessage.error('加载EMQX系统失败')
+  }
+}
+
 // 方法
-const handleEnvironmentChange = (value: string) => {
-  ElMessage.success(`切换到${environments.value.find(env => env.value === value)?.label}`)
-  loadTableData()
+const handleEnvironmentChange = (value: number) => {
+  const selectedSystem = environments.value.find(env => env.value === value)
+  if (selectedSystem) {
+    ElMessage.success(`切换到${selectedSystem.label}`)
+    // 更新搜索表单中的systemId
+    searchForm.systemId = selectedSystem.systemId
+    loadTableData()
+  }
 }
 
 const refreshData = async () => {
@@ -480,11 +506,25 @@ const refreshData = async () => {
 }
 
 const syncTopics = async () => {
+  if (!selectedEnvironment.value) {
+    ElMessage.warning('请先选择EMQX系统')
+    return
+  }
+
   syncLoading.value = true
   try {
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    const result = await TopicAPI.syncTopicsFromEmqx(selectedEnvironment.value)
     await loadTableData()
-    ElMessage.success('Topic 同步成功')
+    ElMessage.success(`同步完成：新增 ${result.syncedCount} 个Topic，更新 ${result.updatedCount} 个Topic`)
+  } catch (error: any) {
+    console.error('同步Topic失败:', error)
+    
+    // 检查是否是限流错误
+    if (error?.response?.data?.message && error.response.data.message.includes('同步操作过于频繁')) {
+      ElMessage.warning(error.response.data.message)
+    } else {
+      ElMessage.error('同步Topic失败，请检查EMQX系统连接状态')
+    }
   } finally {
     syncLoading.value = false
   }
@@ -619,6 +659,7 @@ const formatDateTime = (dateTime: string) => {
 
 // 生命周期
 onMounted(() => {
+  loadSystems()
   loadGroups()
   loadTags()
   loadTableData()

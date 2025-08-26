@@ -10,18 +10,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
+
 
 /**
  * EMQX系统服务类
@@ -40,29 +36,14 @@ public class EmqxSystemService extends ServiceImpl<EmqxSystemMapper, EmqxSystem>
     private static final String STATUS_ONLINE = "online";
     private static final String STATUS_OFFLINE = "offline";
     
-    /** EMQX API 路径常量 */
-    private static final String API_STATUS_PATH = "/api/v5/status";
-    private static final String API_STATS_PATH = "/api/v5/stats";
-    
-    /** HTTP 头常量 */
-    private static final String HEADER_AUTHORIZATION = "Authorization";
-    private static final String AUTH_PREFIX = "Basic ";
-    
-    /** JSON 字段名常量 */
-    private static final String FIELD_VERSION = "version";
-    private static final String FIELD_NODE = "node";
-    private static final String FIELD_STATUS = "status";
-    private static final String FIELD_DATA = "data";
-    private static final String FIELD_TOPICS = "topics";
-    private static final String FIELD_CONNECTIONS = "connections";
-    private static final String FIELD_COUNT = "count";
-    
     /** 默认值常量 */
     private static final String DEFAULT_UNKNOWN = "Unknown";
     private static final int DEFAULT_COUNT = 0;
+    private static final String FIELD_TOPICS = "topics.count";
+    private static final String FIELD_CONNECTIONS = "connections.count";
 
     @Resource
-    private RestTemplate restTemplate;
+    private EmqxService emqxService;
 
     /**
      * 获取所有系统列表
@@ -173,24 +154,9 @@ public class EmqxSystemService extends ServiceImpl<EmqxSystemMapper, EmqxSystem>
         long startTime = System.currentTimeMillis();
 
         try {
-            // 解密密码
-            String password = new String(Base64.getDecoder().decode(system.getPassword()));
-
-            // 创建认证头
-            HttpHeaders headers = new HttpHeaders();
-            String auth = system.getUsername() + ":" + password;
-            String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
-            headers.set(HEADER_AUTHORIZATION, AUTH_PREFIX + encodedAuth);
-
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-
-            // 调用EMQX API测试连接
-            String apiUrl = system.getUrl() + API_STATUS_PATH;
-            ResponseEntity<String> response = restTemplate.exchange(
-                    apiUrl, HttpMethod.GET, entity, String.class);
-
+            // 使用EmqxService测试连接
+            boolean isOnline = emqxService.testConnection(system);
             long responseTime = System.currentTimeMillis() - startTime;
-            boolean isOnline = response.getStatusCode().is2xxSuccessful();
 
             // 更新系统状态
             system.setStatus(isOnline ? STATUS_ONLINE : STATUS_OFFLINE);
@@ -198,18 +164,18 @@ public class EmqxSystemService extends ServiceImpl<EmqxSystemMapper, EmqxSystem>
             this.updateById(system);
 
             if (isOnline) {
-                // 解析响应获取版本和节点信息
-                String responseBody = response.getBody();
+                // 获取系统状态信息
+                String responseBody = emqxService.getSystemStatus(system);
                 String version = DEFAULT_UNKNOWN;
                 String nodeInfo = DEFAULT_UNKNOWN;
 
                 // 解析EMQX API响应获取版本和节点信息
-                version = parseVersionFromResponse(responseBody);
-                nodeInfo = parseNodeInfoFromResponse(responseBody);
+                version = emqxService.parseVersionFromResponse(responseBody);
+                nodeInfo = emqxService.parseNodeInfoFromResponse(responseBody);
 
                 return ConnectionTestResult.success(id, system.getName(), responseTime, version, nodeInfo);
             } else {
-                return ConnectionTestResult.failure(id, system.getName(), "HTTP状态码: " + response.getStatusCode());
+                return ConnectionTestResult.failure(id, system.getName(), "连接失败");
             }
 
         } catch (Exception e) {
@@ -263,74 +229,9 @@ public class EmqxSystemService extends ServiceImpl<EmqxSystemMapper, EmqxSystem>
         return stats;
     }
 
-    /**
-     * 解析EMQX API响应中的版本信息
-     *
-     * @param response API响应内容
-     * @return 版本信息
-     */
-    private String parseVersionFromResponse(String response) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode rootNode = mapper.readTree(response);
 
-            // EMQX API通常在根节点或status节点中包含版本信息
-            if (rootNode.has(FIELD_VERSION)) {
-                return rootNode.get(FIELD_VERSION).asText();
-            }
 
-            // 检查是否在status对象中
-            if (rootNode.has(FIELD_STATUS) && rootNode.get(FIELD_STATUS).has(FIELD_VERSION)) {
-                return rootNode.get(FIELD_STATUS).get(FIELD_VERSION).asText();
-            }
 
-            // 检查是否在data对象中
-            if (rootNode.has(FIELD_DATA) && rootNode.get(FIELD_DATA).has(FIELD_VERSION)) {
-                return rootNode.get(FIELD_DATA).get(FIELD_VERSION).asText();
-            }
-
-            // 如果是节点列表响应，尝试从第一个节点获取版本
-            if (rootNode.isArray() && !rootNode.isEmpty()) {
-                JsonNode firstNode = rootNode.get(0);
-                if (firstNode.has(FIELD_VERSION)) {
-                    return firstNode.get(FIELD_VERSION).asText();
-                }
-            }
-
-            log.warn("无法从EMQX API响应中解析版本信息: {}", response);
-            return DEFAULT_UNKNOWN;
-        } catch (Exception e) {
-            log.error("解析EMQX版本信息时发生错误", e);
-            return DEFAULT_UNKNOWN;
-        }
-    }
-
-    /**
-     * 解析EMQX API响应中的节点信息
-     *
-     * @param response API响应内容
-     * @return 节点信息
-     */
-    private String parseNodeInfoFromResponse(String response) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode rootNode = mapper.readTree(response);
-
-            // 检查是否有节点信息
-            if (rootNode.has(FIELD_NODE)) {
-                return rootNode.get(FIELD_NODE).asText();
-            }
-
-            if (rootNode.has(FIELD_DATA) && rootNode.get(FIELD_DATA).has(FIELD_NODE)) {
-                return rootNode.get(FIELD_DATA).get(FIELD_NODE).asText();
-            }
-
-            return DEFAULT_UNKNOWN;
-        } catch (Exception e) {
-            log.error("解析EMQX节点信息时发生错误", e);
-            return DEFAULT_UNKNOWN;
-        }
-    }
 
     /**
      * 计算在线系统的总主题数
@@ -348,26 +249,10 @@ public class EmqxSystemService extends ServiceImpl<EmqxSystemMapper, EmqxSystem>
 
             for (EmqxSystem system : onlineSystems) {
                 try {
-                    // 解密密码
-                    String password = new String(Base64.getDecoder().decode(system.getPassword()));
-
-                    // 创建认证头
-                    HttpHeaders headers = new HttpHeaders();
-                    String auth = system.getUsername() + ":" + password;
-                    String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
-                    headers.set(HEADER_AUTHORIZATION, AUTH_PREFIX + encodedAuth);
-
-                    HttpEntity<String> entity = new HttpEntity<>(headers);
-
-                    // 从每个在线系统获取主题数量
-                    String apiUrl = system.getUrl() + API_STATS_PATH;
-                    ResponseEntity<String> response = restTemplate.exchange(
-                            apiUrl, HttpMethod.GET, entity, String.class);
-
-                    if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                        long topicCount = parseTopicCountFromStatsResponse(response.getBody());
-                        totalTopics += topicCount;
-                    }
+                    // 使用EmqxService获取统计信息
+                    String responseBody = emqxService.getSystemStats(system);
+                    long topicCount = emqxService.parseCountFromNode(responseBody,FIELD_TOPICS);
+                    totalTopics += topicCount;
                 } catch (Exception e) {
                     log.warn("获取系统 {} 的主题数量失败: {}", system.getName(), e.getMessage());
                 }
@@ -380,36 +265,7 @@ public class EmqxSystemService extends ServiceImpl<EmqxSystemMapper, EmqxSystem>
         }
     }
 
-    /**
-     * 从统计响应中解析主题数量
-     *
-     * @param response API响应内容
-     * @return 主题数量
-     */
-    private long parseTopicCountFromStatsResponse(String response) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode rootNode = mapper.readTree(response);
 
-            // 检查不同可能的路径
-            if (rootNode.has(FIELD_TOPICS) && rootNode.get(FIELD_TOPICS).has(FIELD_COUNT)) {
-                return rootNode.get(FIELD_TOPICS).get(FIELD_COUNT).asLong();
-            }
-
-            if (rootNode.has(FIELD_DATA) && rootNode.get(FIELD_DATA).has(FIELD_TOPICS)) {
-                JsonNode topicsNode = rootNode.get(FIELD_DATA).get(FIELD_TOPICS);
-                if (topicsNode.has(FIELD_COUNT)) {
-                    return topicsNode.get(FIELD_COUNT).asLong();
-                }
-            }
-
-            // 如果找不到主题数量，返回0
-            return DEFAULT_COUNT;
-        } catch (Exception e) {
-            log.error("解析主题数量时发生错误", e);
-            return DEFAULT_COUNT;
-        }
-    }
 
     /**
      * 获取实时主题和连接数统计
@@ -427,31 +283,12 @@ public class EmqxSystemService extends ServiceImpl<EmqxSystemMapper, EmqxSystem>
 
             for (EmqxSystem system : onlineSystems) {
                 try {
-                    // 解密密码
-                    String password = new String(Base64.getDecoder().decode(system.getPassword()));
-
-                    // 创建认证头
-                    HttpHeaders headers = new HttpHeaders();
-                    String auth = system.getUsername() + ":" + password;
-                    String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
-                    headers.set(HEADER_AUTHORIZATION, AUTH_PREFIX + encodedAuth);
-
-                    HttpEntity<String> entity = new HttpEntity<>(headers);
-
-                    // 获取统计信息
-                    String apiUrl = system.getUrl() + API_STATS_PATH;
-                    ResponseEntity<String> response = restTemplate.exchange(
-                            apiUrl, HttpMethod.GET, entity, String.class);
-
-                    if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                        // 解析响应获取主题数
-                        ObjectMapper mapper = new ObjectMapper();
-                        JsonNode rootNode = mapper.readTree(response.getBody());
-
-                        // 解析主题数
-                        long topicCount = parseCountFromNode(rootNode, FIELD_TOPICS);
-                        totalTopics += topicCount;
-                    }
+                    // 使用EmqxService获取统计信息
+                    String responseBody = emqxService.getSystemStats(system);
+                    
+                    // 解析主题数
+                    long topicCount = emqxService.parseCountFromNode(responseBody,FIELD_TOPICS);
+                    totalTopics += topicCount;
                 } catch (Exception e) {
                     log.warn("获取系统 {} 的实时统计信息失败: {}", system.getName(), e.getMessage());
                 }
@@ -465,34 +302,7 @@ public class EmqxSystemService extends ServiceImpl<EmqxSystemMapper, EmqxSystem>
         }
     }
 
-    /**
-     * 从JSON节点中解析计数信息
-     *
-     * @param rootNode  根节点
-     * @param fieldName 字段名称
-     * @return 计数值
-     */
-    private long parseCountFromNode(JsonNode rootNode, String fieldName) {
-        try {
-            // 检查不同可能的路径
-            if (rootNode.has(fieldName) && rootNode.get(fieldName).has(FIELD_COUNT)) {
-                return rootNode.get(fieldName).get(FIELD_COUNT).asLong();
-            }
 
-            if (rootNode.has(FIELD_DATA) && rootNode.get(FIELD_DATA).has(fieldName)) {
-                JsonNode fieldNode = rootNode.get(FIELD_DATA).get(fieldName);
-                if (fieldNode.has(FIELD_COUNT)) {
-                    return fieldNode.get(FIELD_COUNT).asLong();
-                }
-            }
-
-            // 如果找不到计数，返回0
-            return DEFAULT_COUNT;
-        } catch (Exception e) {
-            log.error("解析{}计数时发生错误", fieldName, e);
-            return DEFAULT_COUNT;
-        }
-    }
 
     /**
      * 转换实体为DTO
@@ -510,36 +320,15 @@ public class EmqxSystemService extends ServiceImpl<EmqxSystemMapper, EmqxSystem>
         // 从EMQX API获取实时的Topic数和连接数
         try {
             if (STATUS_ONLINE.equals(system.getStatus())) {
-                // 解密密码
-                String password = new String(Base64.getDecoder().decode(system.getPassword()));
+                // 使用EmqxService获取统计信息
+                String responseBody = emqxService.getSystemStats(system);
 
-                // 创建认证头
-                HttpHeaders headers = new HttpHeaders();
-                String auth = system.getUsername() + ":" + password;
-                String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
-                headers.set(HEADER_AUTHORIZATION, AUTH_PREFIX + encodedAuth);
+                // 解析主题数和连接数
+                long topicCount = emqxService.parseCountFromNode(responseBody, FIELD_TOPICS);
+                long connectionCount = emqxService.parseCountFromNode(responseBody, FIELD_CONNECTIONS);
 
-                HttpEntity<String> entity = new HttpEntity<>(headers);
-
-                // 获取统计信息
-                String apiUrl = system.getUrl() + API_STATS_PATH;
-                ResponseEntity<String> response = restTemplate.exchange(
-                        apiUrl, HttpMethod.GET, entity, String.class);
-
-                if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                    ObjectMapper mapper = new ObjectMapper();
-                    JsonNode rootNode = mapper.readTree(response.getBody());
-
-                    // 解析主题数和连接数
-                    long topicCount = parseCountFromNode(rootNode, FIELD_TOPICS);
-                    long connectionCount = parseCountFromNode(rootNode, FIELD_CONNECTIONS);
-
-                    dto.setTopicCount((int) topicCount);
-                    dto.setConnectionCount((int) connectionCount);
-                } else {
-                    dto.setTopicCount(DEFAULT_COUNT);
-                    dto.setConnectionCount(DEFAULT_COUNT);
-                }
+                dto.setTopicCount((int) topicCount);
+                dto.setConnectionCount((int) connectionCount);
             } else {
                 // 离线系统设置为0
                 dto.setTopicCount(DEFAULT_COUNT);

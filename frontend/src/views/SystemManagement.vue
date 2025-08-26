@@ -110,6 +110,16 @@
           </template>
         </el-table-column>
         <el-table-column prop="username" label="用户名" min-width="120" />
+        <el-table-column prop="connectionCount" label="连接数量">
+          <template #default="{ row }">
+            <span>{{ row.connectionCount || 0 }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="topicCount" label="主题数量">
+          <template #default="{ row }">
+            <span>{{ row.topicCount || 0 }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="连接状态" min-width="120">
           <template #default="{ row }">
             <div class="status-indicator">

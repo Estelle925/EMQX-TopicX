@@ -5,6 +5,10 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.emqx.topichub.dto.*;
+import com.emqx.topichub.entity.EmqxSystem;
+import com.emqx.topichub.service.EmqxSystemService;
+import lombok.extern.slf4j.Slf4j;
+import java.util.Set;
 import com.emqx.topichub.entity.Group;
 import com.emqx.topichub.entity.Tag;
 import com.emqx.topichub.entity.Topic;
@@ -24,6 +28,7 @@ import java.util.stream.Collectors;
 /**
  * @author EMQX Topic Hub Team
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TopicService extends ServiceImpl<TopicMapper, Topic> {
@@ -31,6 +36,8 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
     private final GroupService groupService;
     private final TagService tagService;
     private final TopicTagService topicTagService;
+    private final EmqxSystemService emqxSystemService;
+    private final EmqxService emqxService;
 
     /**
      * 分页搜索Topic列表
@@ -447,5 +454,109 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             });
             topicTagService.updateBatchById(topicTags);
         }
+    }
+
+    /**
+     * 从EMQX系统同步Topic数据
+     *
+     * @param systemId EMQX系统ID
+     * @return 同步结果
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public TopicSyncResult syncTopicsFromEmqx(Long systemId) {
+        try {
+            // 1. 获取EMQX系统信息
+            EmqxSystem emqxSystem = emqxSystemService.getById(systemId);
+            if (emqxSystem == null) {
+                throw new RuntimeException("EMQX系统不存在，ID: " + systemId);
+            }
+
+            if (!"online".equals(emqxSystem.getStatus())) {
+                throw new RuntimeException("EMQX系统离线，无法同步数据: " + emqxSystem.getName());
+            }
+
+            // 2. 调用EMQX API获取订阅信息
+            Set<String> topicPaths = emqxService.fetchTopicsFromEmqx(emqxSystem);
+            
+            if (topicPaths.isEmpty()) {
+                return TopicSyncResult.success(0, 0);
+            }
+
+            // 3. 同步到数据库
+            return syncTopicsToDatabase(topicPaths, systemId);
+
+        } catch (Exception e) {
+            log.error("同步EMQX系统Topic失败，systemId: {}", systemId, e);
+            throw new RuntimeException("同步失败: " + e.getMessage());
+        }
+    }
+
+
+
+    /**
+     * 将Topic数据同步到数据库
+     *
+     * @param topicPaths Topic路径集合
+     * @param systemId   系统ID
+     * @return 同步结果
+     */
+    private TopicSyncResult syncTopicsToDatabase(Set<String> topicPaths, Long systemId) {
+        int syncedCount = 0;
+        int updatedCount = 0;
+
+        for (String topicPath : topicPaths) {
+            try {
+                // 检查Topic是否已存在
+                QueryWrapper<Topic> queryWrapper = new QueryWrapper<>();
+                queryWrapper.eq("path", topicPath)
+                        .eq("system_id", systemId)
+                        .eq("deleted", false);
+                
+                Topic existingTopic = this.getOne(queryWrapper);
+                
+                if (existingTopic != null) {
+                    // 更新现有Topic
+                    existingTopic.setLastActivity(LocalDateTime.now());
+                    existingTopic.setUpdatedAt(LocalDateTime.now());
+                    this.updateById(existingTopic);
+                    updatedCount++;
+                } else {
+                    // 创建新Topic
+                    Topic newTopic = new Topic();
+                    newTopic.setName(generateTopicName(topicPath));
+                    newTopic.setPath(topicPath);
+                    newTopic.setSystemId(systemId);
+                    newTopic.setGroupId(1L);
+                    newTopic.setLastActivity(LocalDateTime.now());
+                    newTopic.setCreatedAt(LocalDateTime.now());
+                    newTopic.setUpdatedAt(LocalDateTime.now());
+                    newTopic.setDeleted(0);
+                    
+                    this.save(newTopic);
+                    syncedCount++;
+                }
+                
+            } catch (Exception e) {
+                log.error("同步Topic到数据库失败，path: {}", topicPath, e);
+            }
+        }
+
+        log.info("Topic同步完成，新增: {}，更新: {}", syncedCount, updatedCount);
+        return TopicSyncResult.success(syncedCount, updatedCount);
+    }
+
+    /**
+     * 根据Topic路径生成Topic名称
+     *
+     * @param topicPath Topic路径
+     * @return Topic名称
+     */
+    private String generateTopicName(String topicPath) {
+        // 取路径的最后一段作为名称
+        String[] parts = topicPath.split("/");
+        if (parts.length > 0) {
+            return parts[parts.length - 1];
+        }
+        return topicPath;
     }
 }
