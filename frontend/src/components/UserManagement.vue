@@ -39,9 +39,9 @@
         <el-table-column prop="username" label="用户名" min-width="120" />
         <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip />
         <el-table-column prop="realName" label="真实姓名" min-width="120" />
-        <el-table-column prop="lastLogin" label="最后登录" min-width="160">
+        <el-table-column prop="lastLoginAt" label="最后登录" min-width="160">
           <template #default="{ row }">
-            {{ formatDateTime(row.lastLogin) }}
+            {{ formatDateTime(row.lastLoginAt) }}
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" min-width="80">
