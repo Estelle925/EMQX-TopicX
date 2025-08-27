@@ -17,7 +17,7 @@ import java.util.List;
  * @since 1.0.0
  */
 @RestController
-@RequestMapping("/systems")
+@RequestMapping("/api/systems")
 @RequiredArgsConstructor
 public class SystemController {
 

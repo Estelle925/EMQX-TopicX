@@ -20,7 +20,7 @@ import java.util.List;
  * @since 1.0.0
  */
 @RestController
-@RequestMapping("/topics")
+@RequestMapping("/api/topics")
 @RequiredArgsConstructor
 public class TopicController {
 

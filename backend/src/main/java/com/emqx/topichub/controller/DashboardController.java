@@ -19,7 +19,7 @@ import java.util.List;
  * @since 1.0.0
  */
 @RestController
-@RequestMapping("/dashboard")
+@RequestMapping("/api/dashboard")
 @RequiredArgsConstructor
 public class DashboardController {
 

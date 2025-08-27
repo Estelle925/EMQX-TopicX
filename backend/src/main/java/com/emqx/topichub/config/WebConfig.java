@@ -10,6 +10,7 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.time.LocalDateTime;
@@ -46,10 +47,33 @@ public class WebConfig implements WebMvcConfigurer {
      */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 配置静态资源映射
+        // 配置根路径静态资源映射 - 直接访问前端页面
         registry.addResourceHandler("/**")
-                .addResourceLocations("classpath:/static/", "file:static/")
+                .addResourceLocations("classpath:/static/")
                 .setCachePeriod(3600);
+    }
+
+    /**
+     * 配置视图控制器
+     * 处理前端路由，将SPA路由请求转发到index.html
+     */
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+        // 处理根路径请求
+        registry.addViewController("/").setViewName("forward:/index.html");
+        
+        // 处理前端路由请求，都转发到index.html让前端路由处理
+        registry.addViewController("/dashboard").setViewName("forward:/index.html");
+        registry.addViewController("/dashboard/**").setViewName("forward:/index.html");
+        registry.addViewController("/login").setViewName("forward:/index.html");
+        registry.addViewController("/topics").setViewName("forward:/index.html");
+        registry.addViewController("/topics/**").setViewName("forward:/index.html");
+        registry.addViewController("/groups").setViewName("forward:/index.html");
+        registry.addViewController("/groups/**").setViewName("forward:/index.html");
+        registry.addViewController("/templates").setViewName("forward:/index.html");
+        registry.addViewController("/templates/**").setViewName("forward:/index.html");
+        registry.addViewController("/system").setViewName("forward:/index.html");
+        registry.addViewController("/system/**").setViewName("forward:/index.html");
     }
 
     /**

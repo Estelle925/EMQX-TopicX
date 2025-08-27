@@ -21,7 +21,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/payload-templates")
+@RequestMapping("/api/payload-templates")
 @RequiredArgsConstructor
 public class PayloadTemplateController {
 

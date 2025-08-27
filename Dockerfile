@@ -5,10 +5,7 @@ FROM openjdk:17-jdk-slim
 # 设置工作目录
 WORKDIR /app
 
-# 复制本地构建的前端产物
-COPY frontend/dist ./static
-
-# 复制本地构建的后端JAR包
+# 复制本地构建的后端JAR包（已包含前端静态文件）
 COPY backend/target/*.jar app.jar
 
 # 创建日志目录
