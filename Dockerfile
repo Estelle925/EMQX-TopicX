@@ -1,6 +1,6 @@
 # 单阶段构建 Dockerfile - 使用本地构建的前后端文件
 # 运行时镜像
-FROM local-openjdk:17.0.2-jdk-slim
+FROM openjdk:17-jdk-slim
 
 # 设置工作目录
 WORKDIR /app
