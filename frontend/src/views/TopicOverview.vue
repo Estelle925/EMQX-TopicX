@@ -225,6 +225,21 @@
           </el-table-column>
           
           <el-table-column
+            prop="status"
+            label="状态"
+            width="100"
+          >
+            <template #default="{ row }">
+              <el-tag
+                :type="row.status === 'enabled' ? 'success' : 'danger'"
+                size="small"
+              >
+                {{ row.status === 'enabled' ? '启用' : '禁用' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          
+          <el-table-column
             prop="tags"
             label="标签"
             width="200"
