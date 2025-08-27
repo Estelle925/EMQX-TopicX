@@ -10,7 +10,7 @@ export interface PayloadTemplateDTO {
   description?: string
   payload: string
   usageCount: number
-  isFavorite: boolean
+  favorite: boolean
   lastUsed?: string
   createdAt: string
   updatedAt: string

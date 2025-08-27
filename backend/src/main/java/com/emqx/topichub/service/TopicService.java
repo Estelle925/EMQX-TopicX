@@ -5,16 +5,10 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.emqx.topichub.dto.*;
-import com.emqx.topichub.entity.EmqxSystem;
-import com.emqx.topichub.service.EmqxSystemService;
-import lombok.extern.slf4j.Slf4j;
-import java.util.Set;
-import com.emqx.topichub.entity.Group;
-import com.emqx.topichub.entity.Tag;
-import com.emqx.topichub.entity.Topic;
-import com.emqx.topichub.entity.TopicTag;
+import com.emqx.topichub.entity.*;
 import com.emqx.topichub.mapper.TopicMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +17,8 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -49,25 +45,24 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
     public IPage<TopicDTO> searchTopics(TopicSearchRequest request) {
         // 构建查询条件
         QueryWrapper<Topic> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("deleted", false);
+        queryWrapper.lambda().eq(Topic::getDeleted, false);
 
         // 关键字搜索（Topic名称或路径）
         if (StringUtils.hasText(request.getKeyword())) {
-            queryWrapper.and(wrapper -> wrapper
-                    .like("name", request.getKeyword())
+            queryWrapper.lambda()
+                    .like(Topic::getName, request.getKeyword())
                     .or()
-                    .like("path", request.getKeyword())
-            );
+                    .like(Topic::getPath, request.getKeyword());
         }
 
         // 业务筛选
         if (request.getGroupId() != null) {
-            queryWrapper.eq("group_id", request.getGroupId());
+            queryWrapper.lambda().eq(Topic::getGroupId, request.getGroupId());
         }
 
         // 系统筛选
         if (request.getSystemId() != null) {
-            queryWrapper.eq("system_id", request.getSystemId());
+            queryWrapper.lambda().eq(Topic::getSystemId, request.getSystemId());
         }
 
         // 排序
@@ -132,9 +127,10 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
     public TopicDTO createTopic(TopicCreateRequest request) {
         // 检查Topic路径是否已存在
         QueryWrapper<Topic> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("path", request.getPath())
-                .eq("system_id", request.getSystemId())
-                .eq("deleted", false);
+        queryWrapper.lambda()
+                .eq(Topic::getPath, request.getPath())
+                .eq(Topic::getSystemId, request.getSystemId())
+                .eq(Topic::getDeleted, false);
         if (this.count(queryWrapper) > 0) {
             throw new RuntimeException("该系统中已存在相同路径的Topic");
         }
@@ -153,10 +149,10 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
                 // 更新标签使用次数统计
                 updateTagsUsageCount(request.getTagIds());
             }
-            
+
             // 更新分组Topic数量统计
             updateGroupTopicCount(topic.getGroupId());
-            
+
             return convertToDTO(topic);
         } else {
             throw new RuntimeException("创建Topic失败");
@@ -179,10 +175,11 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         // 检查路径是否与其他Topic冲突
         if (!existingTopic.getPath().equals(request.getPath())) {
             QueryWrapper<Topic> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("path", request.getPath())
-                    .eq("system_id", existingTopic.getSystemId())
-                    .ne("id", id)
-                    .eq("deleted", false);
+            queryWrapper.lambda()
+                    .eq(Topic::getPath, request.getPath())
+                    .eq(Topic::getSystemId, existingTopic.getSystemId())
+                    .ne(Topic::getId, id)
+                    .eq(Topic::getDeleted, false);
             if (this.count(queryWrapper) > 0) {
                 throw new RuntimeException("该系统中已存在相同路径的Topic");
             }
@@ -197,25 +194,25 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             List<Long> oldTagIds = getTagsByTopicId(id).stream()
                     .map(TagDTO::getId)
                     .collect(Collectors.toList());
-            
+
             // 获取原有分组ID
             Long oldGroupId = existingTopic.getGroupId();
-            
+
             // 更新标签关联
             updateTopicTags(id, request.getTagIds());
-            
+
             // 更新标签使用次数统计（包括新旧标签）
             updateTagsUsageCount(oldTagIds);
             if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
                 updateTagsUsageCount(request.getTagIds());
             }
-            
+
             // 如果分组发生变更，更新相关分组的Topic数量统计
             if (!oldGroupId.equals(request.getGroupId())) {
-                updateGroupTopicCount(oldGroupId); // 更新原分组
-                updateGroupTopicCount(request.getGroupId()); // 更新新分组
+                updateGroupTopicCount(oldGroupId);
+                updateGroupTopicCount(request.getGroupId());
             }
-            
+
             return convertToDTO(existingTopic);
         } else {
             throw new RuntimeException("更新Topic失败");
@@ -242,19 +239,19 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             List<Long> tagIds = getTagsByTopicId(id).stream()
                     .map(TagDTO::getId)
                     .collect(Collectors.toList());
-            
+
             // 删除标签关联
             QueryWrapper<TopicTag> tagQueryWrapper = new QueryWrapper<>();
-            tagQueryWrapper.eq("topic_id", id).eq("deleted", false);
+            tagQueryWrapper.lambda().eq(TopicTag::getTopicId, id).eq(TopicTag::getDeleted, false);
             List<TopicTag> topicTags = topicTagService.list(tagQueryWrapper);
             topicTags.forEach(topicTag -> {
                 topicTag.setDeleted(1);
             });
             topicTagService.updateBatchById(topicTags);
-            
+
             // 更新标签使用次数统计
             updateTagsUsageCount(tagIds);
-            
+
             // 更新分组Topic数量统计
             updateGroupTopicCount(topic.getGroupId());
         } else {
@@ -278,7 +275,8 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             case "assignGroup" -> batchAssignGroup(request.getTopicIds(), request.getGroupId());
             case "addTags" -> batchAddTags(request.getTopicIds(), request.getTagIds());
             case "removeTags" -> batchRemoveTags(request.getTopicIds(), request.getTagIds());
-            case "updatePayload" -> batchUpdatePayload(request.getTopicIds(), request.getTemplateId(), request.getPayloadDoc());
+            case "updatePayload" ->
+                    batchUpdatePayload(request.getTopicIds(), request.getTemplateId(), request.getPayloadDoc());
             default -> throw new RuntimeException("不支持的操作类型");
         }
     }
@@ -340,9 +338,10 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         }
 
         QueryWrapper<TopicTag> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("topic_id", id)
-                .in("tag_id", tagIds)
-                .eq("deleted", false);
+        queryWrapper.lambda()
+                .eq(TopicTag::getTopicId, id)
+                .in(TopicTag::getTagId, tagIds)
+                .eq(TopicTag::getDeleted, false);
 
         List<TopicTag> topicTags = topicTagService.list(queryWrapper);
         topicTags.forEach(topicTag -> {
@@ -350,7 +349,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         });
 
         topicTagService.updateBatchById(topicTags);
-        
+
         // 更新标签使用次数统计
         updateTagsUsageCount(tagIds);
     }
@@ -386,7 +385,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
      */
     private List<TagDTO> getTagsByTopicId(Long topicId) {
         QueryWrapper<TopicTag> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("topic_id", topicId).eq("deleted", false);
+        queryWrapper.lambda().eq(TopicTag::getTopicId, topicId).eq(TopicTag::getDeleted, false);
         List<TopicTag> topicTags = topicTagService.list(queryWrapper);
 
         if (topicTags.isEmpty()) {
@@ -436,7 +435,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
     private void updateTopicTags(Long topicId, List<Long> newTagIds) {
         // 删除现有关联
         QueryWrapper<TopicTag> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("topic_id", topicId).eq("deleted", false);
+        queryWrapper.lambda().eq(TopicTag::getTopicId, topicId).eq(TopicTag::getDeleted, false);
         List<TopicTag> existingTopicTags = topicTagService.list(queryWrapper);
         existingTopicTags.forEach(topicTag -> {
             topicTag.setDeleted(1);
@@ -455,20 +454,20 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
     @Transactional(rollbackFor = Exception.class)
     public void batchAssignGroup(List<Long> topicIds, Long groupId) {
         List<Topic> topics = this.listByIds(topicIds);
-        
+
         // 收集所有涉及的分组ID（包括原分组和新分组）
         Set<Long> affectedGroupIds = topics.stream()
                 .map(Topic::getGroupId)
-                .filter(id -> id != null)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         affectedGroupIds.add(groupId);
-        
+
         topics.forEach(topic -> {
             topic.setGroupId(groupId);
             topic.setUpdatedAt(LocalDateTime.now());
         });
         this.updateBatchById(topics);
-        
+
         // 更新所有涉及分组的Topic数量统计
         for (Long affectedGroupId : affectedGroupIds) {
             updateGroupTopicCount(affectedGroupId);
@@ -494,7 +493,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
                 saveTopicTags(topicId, newTagIds);
             }
         }
-        
+
         // 更新标签使用次数统计
         updateTagsUsageCount(tagIds);
     }
@@ -505,9 +504,9 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
     private void batchRemoveTags(List<Long> topicIds, List<Long> tagIds) {
         for (Long topicId : topicIds) {
             QueryWrapper<TopicTag> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("topic_id", topicId)
-                    .in("tag_id", tagIds)
-                    .eq("deleted", false);
+            queryWrapper.lambda().eq(TopicTag::getTopicId, topicId)
+                    .in(TopicTag::getTagId, tagIds)
+                    .eq(TopicTag::getDeleted, false);
 
             List<TopicTag> topicTags = topicTagService.list(queryWrapper);
             topicTags.forEach(topicTag -> {
@@ -515,7 +514,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             });
             topicTagService.updateBatchById(topicTags);
         }
-        
+
         // 更新标签使用次数统计
         updateTagsUsageCount(tagIds);
     }
@@ -524,30 +523,30 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
      * 批量更新Payload
      */
     @Transactional(rollbackFor = Exception.class)
-    private void batchUpdatePayload(List<Long> topicIds, Long templateId, String payloadDoc) {
+    public void batchUpdatePayload(List<Long> topicIds, Long templateId, String payloadDoc) {
         List<Topic> topics = this.listByIds(topicIds);
-        
+
         String finalPayloadDoc = payloadDoc;
-        
+
         // 如果提供了模板ID，则从模板获取内容
         if (templateId != null) {
             try {
                 PayloadTemplateDTO template = payloadTemplateService.getTemplateDtoById(templateId);
                 finalPayloadDoc = template.getPayload();
-                
+
                 // 增加模板使用次数
                 payloadTemplateService.useTemplate(templateId);
             } catch (Exception e) {
                 throw new RuntimeException("获取Payload模板失败: " + e.getMessage());
             }
         }
-        
+
         // 批量更新Topic的payloadDoc字段
         for (Topic topic : topics) {
             topic.setPayloadDoc(finalPayloadDoc);
             topic.setUpdatedAt(LocalDateTime.now());
         }
-        
+
         this.updateBatchById(topics);
     }
 
@@ -565,14 +564,14 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             if (emqxSystem == null) {
                 throw new RuntimeException("EMQX系统不存在，ID: " + systemId);
             }
-
-            if (!"online".equals(emqxSystem.getStatus())) {
+            String online = "online";
+            if (!online.equals(emqxSystem.getStatus())) {
                 throw new RuntimeException("EMQX系统离线，无法同步数据: " + emqxSystem.getName());
             }
 
             // 2. 调用EMQX API获取订阅信息
             Set<String> topicPaths = emqxService.fetchTopicsFromEmqx(emqxSystem);
-            
+
             if (topicPaths.isEmpty()) {
                 return TopicSyncResult.success(0, 0);
             }
@@ -585,7 +584,6 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             throw new RuntimeException("同步失败: " + e.getMessage());
         }
     }
-
 
 
     /**
@@ -603,12 +601,12 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             try {
                 // 检查Topic是否已存在
                 QueryWrapper<Topic> queryWrapper = new QueryWrapper<>();
-                queryWrapper.eq("path", topicPath)
-                        .eq("system_id", systemId)
-                        .eq("deleted", false);
-                
+                queryWrapper.lambda().eq(Topic::getPath, topicPath)
+                        .eq(Topic::getSystemId, systemId)
+                        .eq(Topic::getDeleted, false);
+
                 Topic existingTopic = this.getOne(queryWrapper);
-                
+
                 if (existingTopic != null) {
                     // 更新现有Topic
                     existingTopic.setLastActivity(LocalDateTime.now());
@@ -625,18 +623,18 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
                     newTopic.setCreatedAt(LocalDateTime.now());
                     newTopic.setUpdatedAt(LocalDateTime.now());
                     newTopic.setDeleted(0);
-                    
+
                     this.save(newTopic);
                     syncedCount++;
                 }
-                
+
             } catch (Exception e) {
                 log.error("同步Topic到数据库失败，path: {}", topicPath, e);
             }
         }
 
         log.info("Topic同步完成，新增: {}，更新: {}", syncedCount, updatedCount);
-        
+
         return TopicSyncResult.success(syncedCount, updatedCount);
     }
 
@@ -664,12 +662,12 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         if (groupId == null) {
             return;
         }
-        
+
         try {
             QueryWrapper<Topic> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("group_id", groupId).eq("deleted", false);
+            queryWrapper.lambda().eq(Topic::getGroupId, groupId).eq(Topic::getDeleted, false);
             long topicCount = this.count(queryWrapper);
-            
+
             Group group = groupService.getById(groupId);
             if (group != null) {
                 group.setTopicCount((int) topicCount);
@@ -689,12 +687,12 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         if (tagId == null) {
             return;
         }
-        
+
         try {
             QueryWrapper<TopicTag> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("tag_id", tagId).eq("deleted", false);
+            queryWrapper.lambda().eq(TopicTag::getTagId, tagId).eq(TopicTag::getDeleted, false);
             long usageCount = topicTagService.count(queryWrapper);
-            
+
             Tag tag = tagService.getById(tagId);
             if (tag != null) {
                 tag.setUsageCount((int) usageCount);
@@ -714,7 +712,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         if (tagIds == null || tagIds.isEmpty()) {
             return;
         }
-        
+
         for (Long tagId : tagIds) {
             updateTagUsageCount(tagId);
         }

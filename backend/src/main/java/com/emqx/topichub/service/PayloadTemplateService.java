@@ -134,7 +134,7 @@ public class PayloadTemplateService extends ServiceImpl<PayloadTemplateMapper, P
         PayloadTemplate template = new PayloadTemplate();
         BeanUtils.copyProperties(request, template);
         template.setUsageCount(0);
-        template.setIsFavorite(false);
+        template.setFavorite(false);
         template.setCreatedAt(LocalDateTime.now());
         template.setUpdatedAt(LocalDateTime.now());
         template.setDeleted(0);
@@ -208,7 +208,7 @@ public class PayloadTemplateService extends ServiceImpl<PayloadTemplateMapper, P
         }
 
         // 切换收藏状态
-        template.setIsFavorite(!template.getIsFavorite());
+        template.setFavorite(!template.getFavorite());
         template.setUpdatedAt(LocalDateTime.now());
 
         if (!this.updateById(template)) {
@@ -233,7 +233,7 @@ public class PayloadTemplateService extends ServiceImpl<PayloadTemplateMapper, P
         copyTemplate.setId(null);
         copyTemplate.setName(originalTemplate.getName() + "_副本");
         copyTemplate.setUsageCount(0);
-        copyTemplate.setIsFavorite(false);
+        copyTemplate.setFavorite(false);
         copyTemplate.setLastUsed(null);
         copyTemplate.setCreatedAt(LocalDateTime.now());
         copyTemplate.setUpdatedAt(LocalDateTime.now());

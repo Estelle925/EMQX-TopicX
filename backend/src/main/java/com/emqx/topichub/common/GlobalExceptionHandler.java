@@ -123,11 +123,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<Void> handleRuntimeException(RuntimeException e) {
         log.error("运行时异常: ", e);
-        // 如果是认证相关的异常，返回401
-        if ("请先登录".equals(e.getMessage())) {
-            return Result.error(401, e.getMessage());
-        }
-        return Result.error(500, "系统内部错误: " + e.getMessage());
+        return Result.error(500, "系统内部错误");
     }
 
     /**
@@ -137,7 +133,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Void> handleIllegalArgumentException(IllegalArgumentException e) {
         log.warn("非法参数: {}", e.getMessage());
-        return Result.error(400, "参数错误: " + e.getMessage());
+        return Result.error(400, "参数错误");
     }
 
     /**

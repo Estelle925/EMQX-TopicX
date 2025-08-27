@@ -84,7 +84,7 @@
                       size="small"
                       text
                       @click.stop="toggleFavorite(template)"
-                      :class="{ 'is-favorite': template.isFavorite }"
+                      :class="{ 'is-favorite': template.favorite }"
                     >
                       <el-icon><Star /></el-icon>
                     </el-button>
@@ -139,7 +139,7 @@
             <template #default="{ row }">
               <div class="template-name">
                 <span>{{ row.name }}</span>
-                <el-icon v-if="row.isFavorite" class="favorite-icon"><Star /></el-icon>
+                <el-icon v-if="row.favorite" class="favorite-icon"><Star /></el-icon>
               </div>
             </template>
           </el-table-column>
@@ -439,8 +439,8 @@ const getPayloadPreview = (payload: string) => {
 const toggleFavorite = async (template: PayloadTemplateDTO) => {
   try {
     await PayloadTemplateAPI.toggleFavorite(template.id)
-    template.isFavorite = !template.isFavorite
-    ElMessage.success(template.isFavorite ? '已添加到收藏' : '已取消收藏')
+    template.favorite = !template.favorite
+    ElMessage.success(template.favorite ? '已添加到收藏' : '已取消收藏')
     // 刷新统计信息
     const stats = await PayloadTemplateAPI.getStatistics()
     statistics.value = stats

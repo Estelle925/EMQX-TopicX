@@ -57,7 +57,7 @@ public class PayloadTemplateDTO {
     /**
      * 是否收藏
      */
-    private Boolean isFavorite;
+    private Boolean favorite;
 
     /**
      * 最近使用时间

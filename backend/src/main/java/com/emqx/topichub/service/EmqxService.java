@@ -15,9 +15,11 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestTemplate;
 
 import jakarta.annotation.Resource;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * EMQX系统API交互服务
@@ -30,8 +32,159 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class EmqxService {
 
+    // ================================ API路径常量 ================================
+    
+    /**
+     * EMQX登录API路径
+     * 用于获取访问令牌的认证接口
+     */
+    private static final String API_LOGIN_PATH = "/api/v5/login";
+    
+    /**
+     * EMQX系统状态API路径
+     * 用于检查系统运行状态和版本信息
+     */
+    private static final String API_STATUS_PATH = "/api/v5/status";
+    
+    /**
+     * EMQX系统统计API路径
+     * 用于获取系统运行统计数据
+     */
+    private static final String API_STATS_PATH = "/api/v5/stats";
+    
+    /**
+     * EMQX主题列表API路径
+     * 用于获取当前系统中的所有主题信息
+     */
+    private static final String API_TOPICS_PATH = "/api/v5/topics";
+    
+    // ================================ 缓存相关常量 ================================
+    
+    /**
+     * Redis中EMQX令牌缓存的键前缀
+     * 格式: emqx:token:{systemId}
+     */
+    private static final String CACHE_KEY_PREFIX = "emqx:token:";
+    
+    /**
+     * 令牌在Redis中的缓存超时时间（分钟）
+     * 设置为50分钟，略小于EMQX默认的60分钟令牌有效期，确保缓存不会过期
+     */
+    private static final long TOKEN_CACHE_TIMEOUT_MINUTES = 50L;
+    
+    // ================================ 分页相关常量 ================================
+    
+    /**
+     * 默认分页大小
+     * 用于主题列表等分页查询的默认每页记录数
+     */
+    private static final int DEFAULT_PAGE_SIZE = 1000;
+    
+    /**
+     * 最大分页限制
+     * 防止无限循环，限制最多获取的页数
+     */
+    private static final int MAX_PAGE_LIMIT = 100;
+    
+    /**
+     * 初始页码
+     * 分页查询的起始页码
+     */
+    private static final int INITIAL_PAGE = 1;
+    
+    // ================================ HTTP头常量 ================================
+    
+    /**
+     * HTTP Authorization头名称
+     * 用于传递认证信息
+     */
+    private static final String HEADER_AUTHORIZATION = "Authorization";
+    
+    /**
+     * HTTP Content-Type头名称
+     * 用于指定请求体的媒体类型
+     */
+    private static final String HEADER_CONTENT_TYPE = "Content-Type";
+    
+    /**
+     * HTTP Referer头名称
+     * 用于指定请求来源页面
+     */
+    private static final String HEADER_REFERER = "Referer";
+    
+    /**
+     * HTTP User-Agent头名称
+     * 用于标识客户端应用程序
+     */
+    private static final String HEADER_USER_AGENT = "User-Agent";
+    
+    /**
+     * Bearer令牌前缀
+     * 用于构造Authorization头的Bearer认证格式
+     */
+    private static final String BEARER_PREFIX = "Bearer ";
+    
+    /**
+     * JSON内容类型
+     * 用于指定请求体为JSON格式
+     */
+    private static final String CONTENT_TYPE_JSON = "application/json";
+    
+    /**
+     * 浏览器用户代理字符串
+     * 模拟Chrome浏览器的User-Agent，用于API请求
+     */
+    private static final String USER_AGENT_VALUE = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36";
+    
+    // ================================ JSON字段常量 ================================
+    
+    /**
+     * JSON响应中的令牌字段名
+     * 用于从登录响应中提取访问令牌
+     */
+    private static final String JSON_FIELD_TOKEN = "token";
+    
+    /**
+     * JSON响应中的状态码字段名
+     * 用于判断API调用是否成功
+     */
+    private static final String JSON_FIELD_CODE = "code";
+    
+    /**
+     * JSON响应中的数据字段名
+     * 用于提取响应中的主要数据内容
+     */
+    private static final String JSON_FIELD_DATA = "data";
+    
+    /**
+     * JSON响应中的版本字段名
+     * 用于获取EMQX系统版本信息
+     */
+    private static final String JSON_FIELD_VERSION = "version";
+    
+    /**
+     * JSON响应中的状态字段名
+     * 用于获取系统运行状态信息
+     */
+    private static final String JSON_FIELD_STATUS = "status";
+    
+    /**
+     * JSON响应中的主题字段名
+     * 用于从主题列表响应中提取主题路径
+     */
+    private static final String JSON_FIELD_TOPIC = "topic";
+    
+    /**
+     * API调用成功的状态码
+     * EMQX API返回0表示操作成功
+     */
+    private static final int SUCCESS_CODE = 0;
+
     @Resource
     private RestTemplate restTemplate;
+    
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
 
 
 
@@ -63,42 +216,180 @@ public class EmqxService {
 
     /**
      * 登录EMQX系统获取Bearer token
+     * 支持Redis缓存，避免重复登录
      *
      * @param emqxSystem EMQX系统信息
      * @return Bearer token
      */
     private String loginToEmqx(EmqxSystem emqxSystem) {
+        String cacheKey = CACHE_KEY_PREFIX + emqxSystem.getId();
+        
         try {
-            // 解密密码
-            String password = new String(Base64.getDecoder().decode(emqxSystem.getPassword()));
-
-            // 创建登录请求头
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Content-Type", "application/json");
-            headers.set("Referer", emqxSystem.getUrl() + "/");
-            headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36");
-
-            // 创建登录请求体
-            String loginBody = String.format("{\"username\":\"%s\",\"password\":\"%s\"}", 
-                    emqxSystem.getUsername(), password);
+            // 1. 先从Redis缓存获取token
+            String cachedToken = stringRedisTemplate.opsForValue().get(cacheKey);
             
-            HttpEntity<String> loginEntity = new HttpEntity<>(loginBody, headers);
-
-            // 调用登录API
-            String loginUrl = emqxSystem.getUrl() + "/api/v5/login";
-            ResponseEntity<String> loginResponse = restTemplate.exchange(
-                    loginUrl, HttpMethod.POST, loginEntity, String.class);
-
-            if (loginResponse.getStatusCode().is2xxSuccessful() && loginResponse.getBody() != null) {
-                // 解析响应获取token
-                return parseTokenFromLoginResponse(loginResponse.getBody());
-            } else {
-                throw new RuntimeException("登录EMQX系统失败，状态码: " + loginResponse.getStatusCode());
+            // 2. 如果缓存中有token，验证其有效性
+            if (cachedToken != null && !cachedToken.isEmpty()) {
+                if (validateToken(emqxSystem, cachedToken)) {
+                    log.debug("使用缓存的token，系统: {}", emqxSystem.getName());
+                    return cachedToken;
+                } else {
+                    log.info("缓存的token已失效，重新登录，系统: {}", emqxSystem.getName());
+                    // 删除失效的token
+                    stringRedisTemplate.delete(cacheKey);
+                }
             }
-
+            
+            // 3. 重新登录获取新token
+            String newToken = performLogin(emqxSystem);
+            
+            // 4. 将新token缓存到Redis，设置过期时间为50分钟（EMQX默认token有效期1小时）
+            stringRedisTemplate.opsForValue().set(cacheKey, newToken, TOKEN_CACHE_TIMEOUT_MINUTES, TimeUnit.MINUTES);
+            
+            log.info("获取新token并缓存，系统: {}", emqxSystem.getName());
+            return newToken;
+            
         } catch (Exception e) {
             log.error("登录EMQX系统失败，系统: {}", emqxSystem.getName(), e);
             throw new RuntimeException("登录EMQX系统失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 创建带Bearer token的HTTP请求头
+     *
+     * @param token Bearer token
+     * @return HTTP请求头
+     */
+    private HttpHeaders createBearerAuthHeaders(String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HEADER_AUTHORIZATION, BEARER_PREFIX + token);
+        return headers;
+    }
+    
+    /**
+     * 创建标准的EMQX API请求头（包含Bearer token和其他标准头）
+     *
+     * @param emqxSystem EMQX系统信息
+     * @param token Bearer token
+     * @return HTTP请求头
+     */
+    private HttpHeaders createStandardApiHeaders(EmqxSystem emqxSystem, String token) {
+        HttpHeaders headers = createBearerAuthHeaders(token);
+        headers.set(HEADER_REFERER, emqxSystem.getUrl() + "/");
+        headers.set(HEADER_USER_AGENT, USER_AGENT_VALUE);
+        return headers;
+    }
+    
+    /**
+     * 创建登录请求头
+     *
+     * @param emqxSystem EMQX系统信息
+     * @return HTTP请求头
+     */
+    private HttpHeaders createLoginHeaders(EmqxSystem emqxSystem) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON);
+        headers.set(HEADER_REFERER, emqxSystem.getUrl() + "/");
+        headers.set(HEADER_USER_AGENT, USER_AGENT_VALUE);
+        return headers;
+    }
+    
+    /**
+     * 执行GET请求
+     *
+     * @param url 请求URL
+     * @param headers 请求头
+     * @return 响应结果
+     */
+    private ResponseEntity<String> executeGetRequest(String url, HttpHeaders headers) {
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+    }
+    
+    /**
+     * 执行POST请求
+     *
+     * @param url 请求URL
+     * @param headers 请求头
+     * @param body 请求体
+     * @return 响应结果
+     */
+    private ResponseEntity<String> executePostRequest(String url, HttpHeaders headers, String body) {
+        HttpEntity<String> entity = new HttpEntity<>(body, headers);
+        return restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
+    }
+
+    /**
+     * 验证token是否有效
+     * 通过调用EMQX状态接口来验证token
+     *
+     * @param emqxSystem EMQX系统信息
+     * @param token 待验证的token
+     * @return token是否有效
+     */
+    private boolean validateToken(EmqxSystem emqxSystem, String token) {
+        try {
+            HttpHeaders headers = createBearerAuthHeaders(token);
+            String apiUrl = emqxSystem.getUrl() + API_STATUS_PATH;
+            ResponseEntity<String> response = executeGetRequest(apiUrl, headers);
+            
+            return response.getStatusCode().is2xxSuccessful();
+        } catch (Exception e) {
+            log.debug("Token验证失败，系统: {}, 错误: {}", emqxSystem.getName(), e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * 执行实际的登录操作
+     *
+     * @param emqxSystem EMQX系统信息
+     * @return Bearer token
+     */
+    private String performLogin(EmqxSystem emqxSystem) {
+        // 解密密码
+        String password = new String(Base64.getDecoder().decode(emqxSystem.getPassword()));
+
+        // 创建登录请求头
+        HttpHeaders headers = createLoginHeaders(emqxSystem);
+
+        // 创建登录请求体
+        String loginBody = String.format("{\"username\":\"%s\",\"password\":\"%s\"}", 
+                emqxSystem.getUsername(), password);
+        
+        // 调用登录API
+        String loginUrl = emqxSystem.getUrl() + API_LOGIN_PATH;
+        ResponseEntity<String> loginResponse = executePostRequest(loginUrl, headers, loginBody);
+
+        if (loginResponse.getStatusCode().is2xxSuccessful() && loginResponse.getBody() != null) {
+            // 解析响应获取token
+            return parseTokenFromLoginResponse(loginResponse.getBody());
+        } else {
+            throw new RuntimeException("登录EMQX系统失败，状态码: " + loginResponse.getStatusCode());
+        }
+    }
+    
+    /**
+     * 清除指定系统的token缓存
+     * 当系统配置更新时调用此方法
+     *
+     * @param systemId 系统ID
+     */
+    public void clearTokenCache(Long systemId) {
+        String cacheKey = CACHE_KEY_PREFIX + systemId;
+        stringRedisTemplate.delete(cacheKey);
+        log.info("已清除系统 {} 的token缓存", systemId);
+    }
+    
+    /**
+     * 清除所有系统的token缓存
+     */
+    public void clearAllTokenCache() {
+        Set<String> keys = stringRedisTemplate.keys(CACHE_KEY_PREFIX + "*");
+        if (!keys.isEmpty()) {
+            stringRedisTemplate.delete(keys);
+            log.info("已清除所有系统的token缓存，共 {} 个", keys.size());
         }
     }
 
@@ -111,26 +402,20 @@ public class EmqxService {
      */
     private Set<String> fetchTopicsWithToken(EmqxSystem emqxSystem, String bearerToken) {
         Set<String> allTopics = new HashSet<>();
-        int page = 1;
-        int limit = 1000;
+        int page = INITIAL_PAGE;
+        int limit = DEFAULT_PAGE_SIZE;
         boolean hasMoreData = true;
         
         try {
             // 创建请求头
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "Bearer " + bearerToken);
-            headers.set("Referer", emqxSystem.getUrl() + "/");
-            headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36");
-
-            HttpEntity<String> entity = new HttpEntity<>(headers);
+            HttpHeaders headers = createStandardApiHeaders(emqxSystem, bearerToken);
 
             // 分页获取所有Topic数据
             while (hasMoreData) {
-                String apiUrl = emqxSystem.getUrl() + "/api/v5/topics?limit=" + limit + "&page=" + page;
+                String apiUrl = emqxSystem.getUrl() + API_TOPICS_PATH + "?limit=" + limit + "&page=" + page;
                 log.debug("正在获取第{}页Topic数据，URL: {}", page, apiUrl);
                 
-                ResponseEntity<String> response = restTemplate.exchange(
-                        apiUrl, HttpMethod.GET, entity, String.class);
+                ResponseEntity<String> response = executeGetRequest(apiUrl, headers);
 
                 if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                     // 解析当前页的Topic列表
@@ -160,8 +445,8 @@ public class EmqxService {
                 }
                 
                 // 防止无限循环，最多获取100页
-                if (page > 100) {
-                    log.warn("已达到最大页数限制(100页)，停止获取");
+                if (page > MAX_PAGE_LIMIT) {
+                    log.warn("已达到最大页数限制({}页)，停止获取", MAX_PAGE_LIMIT);
                     hasMoreData = false;
                 }
             }
@@ -186,16 +471,16 @@ public class EmqxService {
             JSONObject jsonObject = JSON.parseObject(responseBody);
             
             // 直接检查是否有token字段
-            String token = jsonObject.getString("token");
+            String token = jsonObject.getString(JSON_FIELD_TOKEN);
             if (token != null && !token.trim().isEmpty()) {
                 return token;
             }
             
             // 如果有code字段，检查是否成功
-            Integer code = jsonObject.getInteger("code");
+            Integer code = jsonObject.getInteger(JSON_FIELD_CODE);
             if (code != null) {
-                if (code == 0 && jsonObject.containsKey("token")) {
-                    return jsonObject.getString("token");
+                if (code == SUCCESS_CODE && jsonObject.containsKey(JSON_FIELD_TOKEN)) {
+                    return jsonObject.getString(JSON_FIELD_TOKEN);
                 }
                 throw new RuntimeException("登录失败，错误码: " + code);
             }
@@ -221,25 +506,25 @@ public class EmqxService {
             JSONObject jsonObject = JSON.parseObject(responseBody);
             
             // 检查响应是否成功
-            Integer code = jsonObject.getInteger("code");
-            if (code != null && code == 0) {
+            Integer code = jsonObject.getInteger(JSON_FIELD_CODE);
+            if (code != null && code == SUCCESS_CODE) {
                 // 获取data数组
-                JSONArray dataArray = jsonObject.getJSONArray("data");
+                JSONArray dataArray = jsonObject.getJSONArray(JSON_FIELD_DATA);
                 if (dataArray != null) {
                     for (int i = 0; i < dataArray.size(); i++) {
                         JSONObject topicNode = dataArray.getJSONObject(i);
-                        String topicPath = topicNode.getString("topic");
+                        String topicPath = topicNode.getString(JSON_FIELD_TOPIC);
                         if (topicPath != null && !topicPath.trim().isEmpty()) {
                             topicPaths.add(topicPath.trim());
                         }
                     }
                 }
             } else {
-                JSONArray dataJson = jsonObject.getJSONArray("data");
+                JSONArray dataJson = jsonObject.getJSONArray(JSON_FIELD_DATA);
                 if (dataJson != null) {
                     for (int i = 0; i < dataJson.size(); i++) {
                         JSONObject topicNode = dataJson.getJSONObject(i);
-                        String topicPath = topicNode.getString("topic");
+                        String topicPath = topicNode.getString(JSON_FIELD_TOPIC);
                         if (topicPath != null && !topicPath.trim().isEmpty()) {
                             topicPaths.add(topicPath.trim());
                         }
@@ -268,15 +553,11 @@ public class EmqxService {
             String bearerToken = loginToEmqx(emqxSystem);
             
             // 创建认证头
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "Bearer " + bearerToken);
-
-            HttpEntity<String> entity = new HttpEntity<>(headers);
+            HttpHeaders headers = createBearerAuthHeaders(bearerToken);
 
             // 测试连接
-            String apiUrl = emqxSystem.getUrl() + "/api/v5/status";
-            ResponseEntity<String> response = restTemplate.exchange(
-                    apiUrl, HttpMethod.GET, entity, String.class);
+            String apiUrl = emqxSystem.getUrl() + API_STATUS_PATH;
+            ResponseEntity<String> response = executeGetRequest(apiUrl, headers);
 
             return response.getStatusCode().is2xxSuccessful();
         } catch (Exception e) {
@@ -297,15 +578,11 @@ public class EmqxService {
             String bearerToken = loginToEmqx(emqxSystem);
             
             // 创建认证头
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "Bearer " + bearerToken);
-
-            HttpEntity<String> entity = new HttpEntity<>(headers);
+            HttpHeaders headers = createBearerAuthHeaders(bearerToken);
 
             // 获取状态信息
             String apiUrl = emqxSystem.getUrl() + "/api/v5/status";
-            ResponseEntity<String> response = restTemplate.exchange(
-                    apiUrl, HttpMethod.GET, entity, String.class);
+            ResponseEntity<String> response = executeGetRequest(apiUrl, headers);
 
             if (response.getStatusCode().is2xxSuccessful()) {
                 return response.getBody();
@@ -330,15 +607,11 @@ public class EmqxService {
             String bearerToken = loginToEmqx(emqxSystem);
             
             // 创建认证头
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "Bearer " + bearerToken);
-
-            HttpEntity<String> entity = new HttpEntity<>(headers);
+            HttpHeaders headers = createBearerAuthHeaders(bearerToken);
 
             // 获取统计信息
-            String apiUrl = emqxSystem.getUrl() + "/api/v5/stats";
-            ResponseEntity<String> response = restTemplate.exchange(
-                    apiUrl, HttpMethod.GET, entity, String.class);
+            String apiUrl = emqxSystem.getUrl() + API_STATS_PATH;
+            ResponseEntity<String> response = executeGetRequest(apiUrl, headers);
 
             if (response.getStatusCode().is2xxSuccessful()) {
                 return response.getBody();
@@ -348,6 +621,38 @@ public class EmqxService {
         } catch (Exception e) {
             log.error("获取EMQX系统统计信息失败: {}", e.getMessage());
             throw new RuntimeException("获取系统统计信息失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 检查系统健康状态
+     * 使用登录获取Bearer token的方式进行认证
+     *
+     * @param system EMQX系统
+     * @return 是否在线
+     */
+    public boolean checkSystemHealth(EmqxSystem system) {
+        try {
+            if (system.getUrl() == null || system.getUrl().isEmpty()) {
+                return false;
+            }
+            
+            // 先登录获取Bearer token
+            String bearerToken = loginToEmqx(system);
+            
+            // 创建认证头
+            HttpHeaders headers = createBearerAuthHeaders(bearerToken);
+            
+            // 调用EMQX API状态接口
+            String apiUrl = system.getUrl() + API_STATUS_PATH;
+            ResponseEntity<String> response = executeGetRequest(apiUrl, headers);
+            
+            // 检查响应状态码
+            return response.getStatusCode().is2xxSuccessful();
+            
+        } catch (Exception e) {
+            log.warn("检查系统 {} 健康状态失败: {}", system.getName(), e.getMessage());
+            return false;
         }
     }
 
@@ -362,24 +667,24 @@ public class EmqxService {
             JSONObject jsonObject = JSON.parseObject(response);
 
             // EMQX API通常在根节点或status节点中包含版本信息
-            String version = jsonObject.getString("version");
+            String version = jsonObject.getString(JSON_FIELD_VERSION);
             if (version != null) {
                 return version;
             }
 
             // 检查是否在status对象中
-            JSONObject statusObj = jsonObject.getJSONObject("status");
+            JSONObject statusObj = jsonObject.getJSONObject(JSON_FIELD_STATUS);
             if (statusObj != null) {
-                version = statusObj.getString("version");
+                version = statusObj.getString(JSON_FIELD_VERSION);
                 if (version != null) {
                     return version;
                 }
             }
 
             // 检查是否在data对象中
-            JSONObject dataObj = jsonObject.getJSONObject("data");
+            JSONObject dataObj = jsonObject.getJSONObject(JSON_FIELD_DATA);
             if (dataObj != null) {
-                version = dataObj.getString("version");
+                version = dataObj.getString(JSON_FIELD_VERSION);
                 if (version != null) {
                     return version;
                 }
@@ -389,7 +694,7 @@ public class EmqxService {
             JSONArray jsonArray = JSON.parseArray(response);
             if (jsonArray != null && !jsonArray.isEmpty()) {
                 JSONObject firstNode = jsonArray.getJSONObject(0);
-                version = firstNode.getString("version");
+                version = firstNode.getString(JSON_FIELD_VERSION);
                 if (version != null) {
                     return version;
                 }
@@ -420,7 +725,7 @@ public class EmqxService {
                 return node;
             }
 
-            JSONObject dataObj = jsonObject.getJSONObject("data");
+            JSONObject dataObj = jsonObject.getJSONObject(JSON_FIELD_DATA);
             if (dataObj != null) {
                 node = dataObj.getString("node");
                 if (node != null) {
@@ -432,12 +737,13 @@ public class EmqxService {
         } catch (Exception e) {
             // 如果JSON解析失败，尝试从纯文本中提取节点信息
             try {
-                if (response != null && response.contains("Node ")) {
+                String node = "Node ";
+                if (response != null && response.contains(node)) {
                     // 提取"Node xxx"格式的节点信息
                     String[] lines = response.split("\\n");
                     for (String line : lines) {
                         line = line.trim();
-                        if (line.startsWith("Node ")) {
+                        if (line.startsWith(node)) {
                             // 提取节点名称，格式通常是"Node emqx@172.17.0.14 is started"
                             String[] parts = line.split(" ");
                             if (parts.length >= 2) {

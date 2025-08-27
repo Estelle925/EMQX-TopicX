@@ -64,7 +64,7 @@ public class PayloadTemplate {
      * 是否收藏
      */
     @TableField("is_favorite")
-    private Boolean isFavorite;
+    private Boolean favorite;
 
     /**
      * 最近使用时间
