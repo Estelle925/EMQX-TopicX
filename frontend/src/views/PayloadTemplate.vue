@@ -278,7 +278,6 @@
       
       <template #footer>
         <el-button @click="showDetailDialog = false">关闭</el-button>
-        <el-button type="primary" @click="useTemplate(selectedTemplate!)">使用模板</el-button>
       </template>
     </el-dialog>
   </div>
