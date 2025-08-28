@@ -10,7 +10,7 @@
           <el-icon><Refresh /></el-icon>
           刷新数据
         </el-button>
-        <el-button type="primary" @click="showAddDialog = true">
+        <el-button type="primary" @click="showCreateDialog">
           <el-icon><Plus /></el-icon>
           创建模板
         </el-button>
@@ -325,7 +325,19 @@ const templateForm = ref<PayloadTemplateCreateRequest>({
 // 表单验证规则
 const templateRules = {
   name: [{ required: true, message: '请输入模板名称', trigger: 'blur' }],
-  groupId: [{ required: true, message: '请选择业务分组', trigger: 'change' }],
+  groupId: [
+    { required: true, message: '请选择业务分组', trigger: 'change' },
+    { 
+      validator: (rule: any, value: any, callback: any) => {
+        if (!value || value === 0) {
+          callback(new Error('请选择业务分组'))
+        } else {
+          callback()
+        }
+      }, 
+      trigger: 'change' 
+    }
+  ],
   type: [{ required: true, message: '请选择模板类型', trigger: 'change' }],
   payload: [{ required: true, message: '请输入Payload内容', trigger: 'blur' }]
 }
@@ -586,6 +598,15 @@ const useTemplate = async (template: PayloadTemplateDTO) => {
   } catch (error) {
     ElMessage.error('操作失败')
   }
+}
+
+const showCreateDialog = () => {
+  resetForm()
+  // 设置默认分组为第一个分组
+  if (businessGroups.value.length > 0) {
+    templateForm.value.groupId = businessGroups.value[0].id
+  }
+  showAddDialog.value = true
 }
 
 const resetForm = () => {
